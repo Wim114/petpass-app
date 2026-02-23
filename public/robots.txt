@@ -1,0 +1,6 @@
+# robots.txt for Pet Pass Vienna
+User-agent: *
+Allow: /
+
+# Sitemap location
+Sitemap: https://petpassvienna.com/sitemap.xml
