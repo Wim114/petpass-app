@@ -9,7 +9,7 @@ const sizeMap = {
   lg: 'h-12 w-12',
 } as const;
 
-export default function Spinner({ size = 'md', className = '' }: SpinnerProps) {
+export function Spinner({ size = 'md', className = '' }: SpinnerProps) {
   return (
     <svg
       className={`animate-spin text-emerald-600 ${sizeMap[size]} ${className}`}
@@ -35,3 +35,5 @@ export default function Spinner({ size = 'md', className = '' }: SpinnerProps) {
     </svg>
   );
 }
+
+export default Spinner;
