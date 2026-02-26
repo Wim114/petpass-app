@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { supabase } from '@/lib/supabase';
+import { apiCall } from '@/lib/api';
 import { useAuthStore } from '@/stores/authStore';
 import { useLanguage } from '@/i18n/LanguageContext';
 import { Spinner } from '@/components/ui/Spinner';
@@ -57,7 +58,7 @@ const PAYMENT_STATUS_STYLES: Record<string, string> = {
 
 export default function MembershipPage() {
   const { t } = useLanguage();
-  const { user } = useAuthStore();
+  const { user, profile } = useAuthStore();
 
   const { data: subscription, isLoading: subLoading } =
     useQuery<Subscription | null>({
@@ -107,13 +108,9 @@ export default function MembershipPage() {
 
   const handleManageBilling = async () => {
     try {
-      const { data, error } = await supabase.functions.invoke(
-        'create-portal-session',
-        {
-          body: { return_url: window.location.href },
-        }
-      );
-      if (error) throw error;
+      const data = await apiCall<{ url: string }>('create-portal-session', {
+        body: { customerId: profile?.stripe_customer_id },
+      });
       if (data?.url) {
         window.location.href = data.url;
       }
