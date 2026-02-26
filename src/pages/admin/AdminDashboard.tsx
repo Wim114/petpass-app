@@ -23,6 +23,7 @@ import {
   Percent,
 } from 'lucide-react';
 import { useLanguage } from '@/i18n/LanguageContext';
+import { supabase } from '@/lib/supabase';
 import type { AdminStats } from '@/types';
 
 const mockStats: AdminStats = {
@@ -91,9 +92,9 @@ export default function AdminDashboard() {
   const { data: stats } = useQuery<AdminStats>({
     queryKey: ['admin-stats'],
     queryFn: async () => {
-      // TODO: Replace with actual supabase edge function call
-      // const { data } = await supabase.functions.invoke('admin-stats');
-      return mockStats;
+      const { data, error } = await supabase.functions.invoke('admin-stats');
+      if (error) throw error;
+      return data as AdminStats;
     },
     staleTime: 1000 * 60 * 5,
   });

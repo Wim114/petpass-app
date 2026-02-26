@@ -4,6 +4,7 @@ import { BrowserRouter } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { LanguageProvider } from '@/i18n/LanguageContext';
 import { ToastProvider } from '@/components/ui/Toast';
+import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
 import { useAuthStore } from '@/stores/authStore';
 import App from './App';
 import './styles/globals.css';
@@ -28,14 +29,16 @@ if (!rootElement) {
 const root = ReactDOM.createRoot(rootElement);
 root.render(
   <React.StrictMode>
-    <BrowserRouter>
-      <QueryClientProvider client={queryClient}>
-        <LanguageProvider>
-          <ToastProvider>
-            <App />
-          </ToastProvider>
-        </LanguageProvider>
-      </QueryClientProvider>
-    </BrowserRouter>
+    <ErrorBoundary>
+      <BrowserRouter>
+        <QueryClientProvider client={queryClient}>
+          <LanguageProvider>
+            <ToastProvider>
+              <App />
+            </ToastProvider>
+          </LanguageProvider>
+        </QueryClientProvider>
+      </BrowserRouter>
+    </ErrorBoundary>
   </React.StrictMode>
 );

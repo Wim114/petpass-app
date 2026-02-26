@@ -92,6 +92,7 @@ export default function DashboardLayout() {
               {sidebarExpanded && <span>{item.label}</span>}
             </NavLink>
           ))}
+
         </nav>
 
         {/* Sidebar Footer */}
@@ -177,6 +178,7 @@ export default function DashboardLayout() {
               <span>{item.label}</span>
             </NavLink>
           ))}
+
         </nav>
 
         <div className="absolute bottom-0 left-0 right-0 border-t border-slate-200 p-4">
