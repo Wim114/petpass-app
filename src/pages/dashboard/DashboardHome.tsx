@@ -88,9 +88,9 @@ export default function DashboardHome() {
             {t.dashboard?.subscription ?? 'Subscription'}
           </h3>
           <p className="text-xl font-bold text-slate-800 mt-1">
-            {subscription?.plan_type
-              ? subscription.plan_type.charAt(0).toUpperCase() +
-                subscription.plan_type.slice(1)
+            {subscription?.plan
+              ? subscription.plan.charAt(0).toUpperCase() +
+                subscription.plan.slice(1)
               : t.dashboard?.free ?? 'Free'}
           </p>
         </div>

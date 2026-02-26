@@ -46,7 +46,7 @@ export default function MembershipCard() {
 
   const qrData = JSON.stringify({
     member_id: user?.id,
-    plan: subscription?.plan_type || 'free',
+    plan: subscription?.plan || 'free',
     status: subscription?.status || 'none',
   });
 
@@ -100,7 +100,7 @@ export default function MembershipCard() {
                   <div className="flex items-center gap-1.5 bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full">
                     <Crown className="w-3.5 h-3.5" />
                     <span className="text-xs font-semibold uppercase">
-                      {subscription.plan_type}
+                      {subscription.plan}
                     </span>
                   </div>
                 </div>
@@ -143,7 +143,7 @@ export default function MembershipCard() {
                   {t.card?.plan ?? 'Plan'}
                 </span>
                 <span className="font-semibold text-slate-800 capitalize">
-                  {subscription.plan_type}
+                  {subscription.plan}
                 </span>
               </div>
               <div className="flex justify-between text-sm">

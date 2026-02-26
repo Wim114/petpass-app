@@ -6,7 +6,7 @@ import { supabase } from '@/lib/supabase';
 import { useLanguage } from '@/i18n/LanguageContext';
 import type { UserProfile } from '@/types';
 
-const ROLES = ['user', 'admin', 'moderator'] as const;
+const ROLES = ['member', 'admin', 'vetpro'] as const;
 const PAGE_SIZE = 10;
 
 export default function UserManagement() {
@@ -126,12 +126,12 @@ export default function UserManagement() {
                         className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${
                           user.role === 'admin'
                             ? 'bg-purple-50 text-purple-700'
-                            : user.role === 'moderator'
+                            : user.role === 'vetpro'
                               ? 'bg-blue-50 text-blue-700'
                               : 'bg-slate-100 text-slate-600'
                         }`}
                       >
-                        {user.role || 'user'}
+                        {user.role || 'member'}
                       </span>
                     </td>
                     <td className="px-5 py-3">

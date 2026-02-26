@@ -14,7 +14,6 @@ import { Spinner } from '@/components/ui/Spinner';
 import type { Subscription, Payment } from '@/types';
 
 const PLAN_FEATURES: Record<string, string[]> = {
-  free: ['1 pet profile', 'Basic member card', 'Community access'],
   basic: [
     'Up to 3 pet profiles',
     'Digital member card with QR',
@@ -22,7 +21,15 @@ const PLAN_FEATURES: Record<string, string[]> = {
     'Partner discounts (5%)',
     'Monthly newsletter',
   ],
-  premium: [
+  care_plus: [
+    'Up to 5 pet profiles',
+    'Digital member card with QR',
+    '24/7 priority support',
+    'Partner discounts (10%)',
+    'Vet consultation credits',
+    'Monthly newsletter',
+  ],
+  vip: [
     'Unlimited pet profiles',
     'Premium member card with QR',
     '24/7 priority support',
@@ -42,7 +49,7 @@ const STATUS_STYLES: Record<string, string> = {
 };
 
 const PAYMENT_STATUS_STYLES: Record<string, string> = {
-  succeeded: 'bg-emerald-100 text-emerald-700',
+  paid: 'bg-emerald-100 text-emerald-700',
   pending: 'bg-amber-100 text-amber-700',
   failed: 'bg-red-100 text-red-700',
   refunded: 'bg-slate-100 text-slate-700',
@@ -95,8 +102,8 @@ export default function MembershipPage() {
     );
   }
 
-  const planType = subscription?.plan_type || 'free';
-  const features = PLAN_FEATURES[planType] || PLAN_FEATURES.free;
+  const planType = subscription?.plan || null;
+  const features = planType ? (PLAN_FEATURES[planType] || PLAN_FEATURES.basic) : [];
 
   const handleManageBilling = async () => {
     try {
@@ -138,7 +145,7 @@ export default function MembershipPage() {
                 {t.membership?.currentPlan ?? 'Current Plan'}
               </h2>
               <p className="text-2xl font-bold text-emerald-600 capitalize">
-                {planType}
+                {planType || 'Free'}
               </p>
             </div>
           </div>
@@ -237,10 +244,10 @@ export default function MembershipPage() {
                       {format(new Date(payment.created_at), 'MMM d, yyyy')}
                     </td>
                     <td className="py-3 px-2 text-slate-700">
-                      {payment.description || `${planType} plan`}
+                      {planType ? `${planType} plan` : 'Subscription'}
                     </td>
                     <td className="py-3 px-2 text-slate-700 font-medium">
-                      {(payment.amount / 100).toFixed(2)}{' '}
+                      {(payment.amount_cents / 100).toFixed(2)}{' '}
                       {payment.currency?.toUpperCase() || 'EUR'}
                     </td>
                     <td className="py-3 px-2">
