@@ -44,24 +44,23 @@ export default function SignupForm() {
 
   const onSubmit = async (data: SignupFormData) => {
     setError(null);
-    try {
-      await signUp(data.email, data.password, {
-        first_name: data.first_name,
-        last_name: data.last_name,
-        district: data.district,
-      });
-      setSuccess(true);
-    } catch (err: any) {
-      setError(err.message || 'An error occurred during registration.');
+    const { error } = await signUp(data.email, data.password, {
+      first_name: data.first_name,
+      last_name: data.last_name,
+      district: data.district,
+    });
+    if (error) {
+      setError(error.message || 'An error occurred during registration.');
+      return;
     }
+    setSuccess(true);
   };
 
   const handleGoogleSignUp = async () => {
     setError(null);
-    try {
-      await signInWithGoogle();
-    } catch (err: any) {
-      setError(err.message || 'Google sign-in failed.');
+    const { error } = await signInWithGoogle();
+    if (error) {
+      setError(error.message || 'Google sign-in failed.');
     }
   };
 
