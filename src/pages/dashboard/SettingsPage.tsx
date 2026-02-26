@@ -13,6 +13,7 @@ import {
 import { useAuthStore } from '@/stores/authStore';
 import { useLanguage } from '@/i18n/LanguageContext';
 import { supabase } from '@/lib/supabase';
+import { apiCall } from '@/lib/api';
 import { Spinner } from '@/components/ui/Spinner';
 
 const passwordSchema = z
@@ -99,7 +100,7 @@ export default function SettingsPage() {
     if (deleteText !== 'DELETE') return;
     setDeleting(true);
     try {
-      await supabase.functions.invoke('delete-account');
+      await apiCall('delete-account');
       await signOut();
     } catch {
       setDeleting(false);

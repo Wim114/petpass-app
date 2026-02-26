@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { useLanguage } from '@/i18n/LanguageContext';
-import { supabase } from '@/lib/supabase';
+import { apiCall } from '@/lib/api';
 import { Spinner } from '@/components/ui/Spinner';
 import type { AdminStats } from '@/types';
 import {
@@ -61,11 +61,7 @@ export default function AnalyticsPage() {
 
   const { data: stats, isLoading } = useQuery<AdminStats>({
     queryKey: ['admin-stats'],
-    queryFn: async () => {
-      const { data, error } = await supabase.functions.invoke('admin-stats');
-      if (error) throw error;
-      return data as AdminStats;
-    },
+    queryFn: () => apiCall<AdminStats>('admin-stats', { method: 'GET' }),
     staleTime: 1000 * 60 * 5,
   });
 
