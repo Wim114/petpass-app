@@ -7,29 +7,7 @@ import { useAuthStore } from '@/stores/authStore';
 import { useLanguage } from '@/i18n/LanguageContext';
 import { supabase } from '@/lib/supabase';
 import { Spinner } from '@/components/ui/Spinner';
-
-const DISTRICTS = [
-  'Aveiro',
-  'Beja',
-  'Braga',
-  'Bragança',
-  'Castelo Branco',
-  'Coimbra',
-  'Évora',
-  'Faro',
-  'Guarda',
-  'Leiria',
-  'Lisboa',
-  'Portalegre',
-  'Porto',
-  'Santarém',
-  'Setúbal',
-  'Viana do Castelo',
-  'Vila Real',
-  'Viseu',
-  'Açores',
-  'Madeira',
-];
+import { DISTRICTS } from '@/lib/constants';
 
 const LANGUAGES = [
   { value: 'pt', label: 'Português' },
