@@ -86,8 +86,16 @@ export default function AdminLayout() {
             ))}
           </nav>
 
-          {/* Sign out */}
-          <div className="border-t border-slate-700 p-3">
+          {/* Back to Dashboard + Sign out */}
+          <div className="border-t border-slate-700 p-3 space-y-1">
+            <NavLink
+              to="/dashboard"
+              onClick={() => setSidebarOpen(false)}
+              className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-400 transition-colors hover:bg-slate-800 hover:text-white"
+            >
+              <LayoutDashboard className="h-5 w-5" />
+              Back to Dashboard
+            </NavLink>
             <button
               onClick={handleSignOut}
               className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-300 transition-colors hover:bg-slate-800 hover:text-white"
