@@ -1,35 +1,44 @@
 import React from 'react';
 import { CheckCircle2 } from 'lucide-react';
 import { useLanguage } from '@/i18n/LanguageContext';
+import { usePlanConfig } from '@/hooks/usePlanConfig';
 
 interface PricingSectionProps {
   onOpenModal: () => void;
 }
 
-const PricingSection: React.FC<PricingSectionProps> = ({ onOpenModal }) => {
-  const { t } = useLanguage();
+const PLAN_NAME_KEYS: Record<string, { en: string; de: string }> = {
+  basic: { en: 'The Basic', de: 'Der Basis' },
+  care_plus: { en: 'The Care Plus', de: 'Der Care Plus' },
+  vip: { en: 'The VIP', de: 'Der VIP' },
+};
 
-  const plans = [
-    {
-      name: t.pricing.basic.name,
-      price: "16",
-      description: t.pricing.basic.description,
-      features: t.pricing.basic.features,
-    },
-    {
-      name: t.pricing.carePlus.name,
-      price: "39",
-      description: t.pricing.carePlus.description,
-      features: t.pricing.carePlus.features,
-      isPopular: true,
-    },
-    {
-      name: t.pricing.vip.name,
-      price: "99",
-      description: t.pricing.vip.description,
-      features: t.pricing.vip.features,
-    },
-  ];
+const PLAN_DESC_KEYS: Record<string, { en: string; de: string }> = {
+  basic: {
+    en: 'Essential preventive care for healthy companions.',
+    de: 'Wesentliche Vorsorge für gesunde Begleiter.',
+  },
+  care_plus: {
+    en: 'Comprehensive coverage with grooming perks.',
+    de: 'Umfassende Abdeckung mit Pflegevorteilen.',
+  },
+  vip: {
+    en: 'Premium care with grooming included — saves €400+/year.',
+    de: 'Premium-Versorgung mit Fellpflege inklusive — spart €400+/Jahr.',
+  },
+};
+
+const PricingSection: React.FC<PricingSectionProps> = ({ onOpenModal }) => {
+  const { t, lang } = useLanguage();
+  const { plans: planConfig } = usePlanConfig();
+
+  const plans = planConfig.map((cfg) => ({
+    name: PLAN_NAME_KEYS[cfg.key]?.[lang] ?? cfg.key,
+    price: String(cfg.price),
+    description: PLAN_DESC_KEYS[cfg.key]?.[lang] ?? '',
+    features: lang === 'de' ? cfg.features_de : cfg.features_en,
+    isPopular: cfg.isPopular,
+  }));
 
   return (
     <section id="plans" className="py-24 bg-slate-50">

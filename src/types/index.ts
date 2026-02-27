@@ -127,6 +127,18 @@ export interface Referral {
   created_at: string;
 }
 
+export interface PlanConfigItem {
+  key: PlanType;
+  price: number;
+  isPopular: boolean;
+  features_en: string[];
+  features_de: string[];
+}
+
+export interface PlanConfig {
+  plans: PlanConfigItem[];
+}
+
 export interface AdminStats {
   totalMembers: number;
   mrr: number;
