@@ -116,7 +116,7 @@ export default function SignupForm() {
                 type="text"
                 {...register('first_name')}
                 className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition"
-                placeholder="João"
+                placeholder="Max"
               />
               {errors.first_name && (
                 <p className="text-red-500 text-xs mt-1">{errors.first_name.message}</p>
@@ -130,7 +130,7 @@ export default function SignupForm() {
                 type="text"
                 {...register('last_name')}
                 className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition"
-                placeholder="Silva"
+                placeholder="Mustermann"
               />
               {errors.last_name && (
                 <p className="text-red-500 text-xs mt-1">{errors.last_name.message}</p>
@@ -146,7 +146,7 @@ export default function SignupForm() {
               type="email"
               {...register('email')}
               className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition"
-              placeholder="joao@example.com"
+              placeholder="max@example.com"
             />
             {errors.email && (
               <p className="text-red-500 text-xs mt-1">{errors.email.message}</p>

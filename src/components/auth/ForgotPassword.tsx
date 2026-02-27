@@ -91,7 +91,7 @@ export default function ForgotPassword() {
                   type="email"
                   {...register('email')}
                   className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition"
-                  placeholder="joao@example.com"
+                  placeholder="max@example.com"
                 />
                 {errors.email && (
                   <p className="text-red-500 text-xs mt-1">{errors.email.message}</p>

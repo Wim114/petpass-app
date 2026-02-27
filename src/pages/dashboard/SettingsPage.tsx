@@ -58,7 +58,7 @@ export default function SettingsPage() {
   });
 
   const handleLanguageChange = (newLang: string) => {
-    setLang(newLang as 'pt' | 'en');
+    setLang(newLang as 'de' | 'en');
   };
 
   const handleConsentChange = async (
@@ -128,14 +128,14 @@ export default function SettingsPage() {
         </div>
         <div className="flex gap-3">
           <button
-            onClick={() => handleLanguageChange('pt')}
+            onClick={() => handleLanguageChange('de')}
             className={`px-4 py-2 rounded-lg border text-sm font-medium transition ${
-              lang === 'pt'
+              lang === 'de'
                 ? 'bg-emerald-50 border-emerald-300 text-emerald-700'
                 : 'border-slate-200 text-slate-600 hover:border-slate-300'
             }`}
           >
-            Portugues
+            Deutsch
           </button>
           <button
             onClick={() => handleLanguageChange('en')}
