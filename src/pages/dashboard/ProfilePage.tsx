@@ -10,7 +10,7 @@ import { Spinner } from '@/components/ui/Spinner';
 import { DISTRICTS } from '@/lib/constants';
 
 const LANGUAGES = [
-  { value: 'pt', label: 'Português' },
+  { value: 'de', label: 'Deutsch' },
   { value: 'en', label: 'English' },
 ];
 
@@ -43,7 +43,7 @@ export default function ProfilePage() {
       last_name: profile?.last_name || '',
       phone: profile?.phone || '',
       district: profile?.district || '',
-      preferred_language: profile?.preferred_language || 'pt',
+      preferred_language: profile?.preferred_language || 'de',
     },
   });
 
@@ -201,7 +201,7 @@ export default function ProfilePage() {
             type="tel"
             {...register('phone')}
             className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition"
-            placeholder="+351 912 345 678"
+            placeholder="+43 660 123 4567"
           />
         </div>
 
