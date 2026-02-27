@@ -12,6 +12,7 @@ import {
   X,
   ChevronLeft,
   ChevronRight,
+  ShieldCheck,
 } from 'lucide-react';
 import { useAuthStore } from '@/stores/authStore';
 
@@ -93,6 +94,19 @@ export default function DashboardLayout() {
             </NavLink>
           ))}
 
+          {profile?.role === 'admin' && (
+            <>
+              <div className={`my-2 border-t border-slate-200 ${!sidebarExpanded ? 'mx-1' : ''}`} />
+              <NavLink
+                to="/admin"
+                className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-amber-700 transition-colors hover:bg-amber-50 ${!sidebarExpanded ? 'justify-center' : ''}"
+                title={!sidebarExpanded ? 'Admin Panel' : undefined}
+              >
+                <ShieldCheck className="h-5 w-5 shrink-0" />
+                {sidebarExpanded && <span>Admin Panel</span>}
+              </NavLink>
+            </>
+          )}
         </nav>
 
         {/* Sidebar Footer */}
@@ -179,6 +193,19 @@ export default function DashboardLayout() {
             </NavLink>
           ))}
 
+          {profile?.role === 'admin' && (
+            <>
+              <div className="my-2 border-t border-slate-200" />
+              <NavLink
+                to="/admin"
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-amber-700 transition-colors hover:bg-amber-50"
+              >
+                <ShieldCheck className="h-5 w-5" />
+                <span>Admin Panel</span>
+              </NavLink>
+            </>
+          )}
         </nav>
 
         <div className="absolute bottom-0 left-0 right-0 border-t border-slate-200 p-4">
