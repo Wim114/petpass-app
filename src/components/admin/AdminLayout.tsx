@@ -5,6 +5,7 @@ import {
   Users,
   BarChart3,
   ClipboardList,
+  CreditCard,
   LogOut,
   Menu,
   X,
@@ -17,6 +18,7 @@ const navItems = [
   { to: '/admin', icon: LayoutDashboard, label: 'Overview', end: true },
   { to: '/admin/users', icon: Users, label: 'Users', end: false },
   { to: '/admin/analytics', icon: BarChart3, label: 'Analytics', end: false },
+  { to: '/admin/plans', icon: CreditCard, label: 'Plans', end: false },
   { to: '/admin/waitlist', icon: ClipboardList, label: 'Waitlist', end: false },
 ];
 

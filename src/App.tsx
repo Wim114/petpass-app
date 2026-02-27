@@ -22,6 +22,7 @@ import AdminDashboard from '@/pages/admin/AdminDashboard';
 import UserManagement from '@/pages/admin/UserManagement';
 import AnalyticsPage from '@/pages/admin/AnalyticsPage';
 import WaitlistManager from '@/pages/admin/WaitlistManager';
+import PlanManagement from '@/pages/admin/PlanManagement';
 
 export default function App() {
   return (
@@ -63,6 +64,7 @@ export default function App() {
         <Route index element={<AdminDashboard />} />
         <Route path="users" element={<UserManagement />} />
         <Route path="analytics" element={<AnalyticsPage />} />
+        <Route path="plans" element={<PlanManagement />} />
         <Route path="waitlist" element={<WaitlistManager />} />
       </Route>
 
