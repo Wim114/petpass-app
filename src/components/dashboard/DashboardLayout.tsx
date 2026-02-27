@@ -94,20 +94,21 @@ export default function DashboardLayout() {
             </NavLink>
           ))}
 
-          {profile?.role === 'admin' && (
-            <>
-              <div className={`my-2 border-t border-slate-200 ${!sidebarExpanded ? 'mx-1' : ''}`} />
-              <NavLink
-                to="/admin"
-                className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-amber-700 transition-colors hover:bg-amber-50 ${!sidebarExpanded ? 'justify-center' : ''}"
-                title={!sidebarExpanded ? 'Admin Panel' : undefined}
-              >
-                <ShieldCheck className="h-5 w-5 shrink-0" />
-                {sidebarExpanded && <span>Admin Panel</span>}
-              </NavLink>
-            </>
-          )}
         </nav>
+
+        {/* Admin Link */}
+        {profile?.role === 'admin' && (
+          <div className={`border-t border-slate-200 px-2 py-2`}>
+            <NavLink
+              to="/admin"
+              className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-amber-700 transition-colors hover:bg-amber-50 ${!sidebarExpanded ? 'justify-center' : ''}`}
+              title={!sidebarExpanded ? 'Admin Panel' : undefined}
+            >
+              <ShieldCheck className="h-5 w-5 shrink-0" />
+              {sidebarExpanded && <span>Admin Panel</span>}
+            </NavLink>
+          </div>
+        )}
 
         {/* Sidebar Footer */}
         <div className="border-t border-slate-200 p-4">
@@ -193,22 +194,19 @@ export default function DashboardLayout() {
             </NavLink>
           ))}
 
-          {profile?.role === 'admin' && (
-            <>
-              <div className="my-2 border-t border-slate-200" />
-              <NavLink
-                to="/admin"
-                onClick={() => setMobileMenuOpen(false)}
-                className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-amber-700 transition-colors hover:bg-amber-50"
-              >
-                <ShieldCheck className="h-5 w-5" />
-                <span>Admin Panel</span>
-              </NavLink>
-            </>
-          )}
         </nav>
 
         <div className="absolute bottom-0 left-0 right-0 border-t border-slate-200 p-4">
+          {profile?.role === 'admin' && (
+            <NavLink
+              to="/admin"
+              onClick={() => setMobileMenuOpen(false)}
+              className="mb-2 flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-amber-700 transition-colors hover:bg-amber-50"
+            >
+              <ShieldCheck className="h-5 w-5" />
+              <span>Admin Panel</span>
+            </NavLink>
+          )}
           <button
             onClick={handleSignOut}
             className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium text-slate-600 transition-colors hover:bg-red-50 hover:text-red-600"
@@ -270,7 +268,7 @@ export default function DashboardLayout() {
       {/* Mobile Bottom Navigation */}
       <nav className="fixed bottom-0 left-0 right-0 z-30 border-t border-slate-200 bg-white lg:hidden">
         <div className="flex items-center justify-around py-2">
-          {navItems.slice(0, 5).map((item) => (
+          {navItems.slice(0, profile?.role === 'admin' ? 4 : 5).map((item) => (
             <NavLink
               key={item.to}
               to={item.to}
@@ -285,6 +283,19 @@ export default function DashboardLayout() {
               <span>{item.label}</span>
             </NavLink>
           ))}
+          {profile?.role === 'admin' && (
+            <NavLink
+              to="/admin"
+              className={({ isActive }) =>
+                `flex flex-col items-center gap-0.5 px-2 py-1 text-[10px] font-medium transition-colors ${
+                  isActive ? 'text-amber-600' : 'text-amber-500'
+                }`
+              }
+            >
+              <ShieldCheck className="h-5 w-5" />
+              <span>Admin</span>
+            </NavLink>
+          )}
         </div>
       </nav>
     </div>
