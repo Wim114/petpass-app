@@ -18,6 +18,7 @@ import MembershipPage from '@/pages/dashboard/MembershipPage';
 import MembershipCard from '@/pages/dashboard/MembershipCard';
 import SettingsPage from '@/pages/dashboard/SettingsPage';
 
+import AdminSetup from '@/pages/admin/AdminSetup';
 import AdminDashboard from '@/pages/admin/AdminDashboard';
 import UserManagement from '@/pages/admin/UserManagement';
 import AnalyticsPage from '@/pages/admin/AnalyticsPage';
@@ -51,6 +52,16 @@ export default function App() {
         <Route path="card" element={<MembershipCard />} />
         <Route path="settings" element={<SettingsPage />} />
       </Route>
+
+      {/* Admin setup bootstrap (first admin claim) */}
+      <Route
+        path="/admin-setup"
+        element={
+          <AuthGuard>
+            <AdminSetup />
+          </AuthGuard>
+        }
+      />
 
       {/* Admin routes */}
       <Route
