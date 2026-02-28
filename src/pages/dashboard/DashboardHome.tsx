@@ -58,7 +58,7 @@ export default function DashboardHome() {
       {/* Welcome */}
       <div>
         <h1 className="text-3xl font-bold text-slate-800">
-          {t.dashboard?.welcome ?? 'Welcome back'}, {firstName}!
+          {(t.dashboard?.welcome ?? 'Welcome back, {name}!').replace('{name}', firstName)}
         </h1>
         <p className="text-slate-500 mt-1">
           {t.dashboard?.welcomeSubtitle ??
