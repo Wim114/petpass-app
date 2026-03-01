@@ -22,7 +22,6 @@ import {
   ClipboardList,
   Percent,
 } from 'lucide-react';
-import { useLanguage } from '@/i18n/LanguageContext';
 import { apiCall } from '@/lib/api';
 import type { AdminStats } from '@/types';
 
@@ -87,8 +86,6 @@ function KpiCard({ title, value, icon: Icon, trend, subtitle }: KpiCardProps) {
 }
 
 export default function AdminDashboard() {
-  const { t } = useLanguage();
-
   const { data: stats } = useQuery<AdminStats>({
     queryKey: ['admin-stats'],
     queryFn: () => apiCall<AdminStats>('admin-stats', { method: 'GET' }),
@@ -267,9 +264,9 @@ export default function AdminDashboard() {
           <table className="w-full text-left text-sm">
             <thead>
               <tr className="border-b border-slate-100 bg-slate-50">
-                <th className="px-5 py-3 font-medium text-slate-500">Name</th>
                 <th className="px-5 py-3 font-medium text-slate-500">Email</th>
                 <th className="px-5 py-3 font-medium text-slate-500">Plan</th>
+                <th className="px-5 py-3 font-medium text-slate-500">District</th>
                 <th className="px-5 py-3 font-medium text-slate-500">Joined</th>
               </tr>
             </thead>
@@ -281,16 +278,24 @@ export default function AdminDashboard() {
                   </td>
                 </tr>
               ) : (
-                s.recentSignups.map((signup: any, idx: number) => (
+                s.recentSignups.map((signup, idx) => (
                   <tr key={idx} className="border-b border-slate-100 last:border-0">
-                    <td className="px-5 py-3 text-slate-900">{signup.name}</td>
-                    <td className="px-5 py-3 text-slate-600">{signup.email}</td>
+                    <td className="px-5 py-3 text-slate-900">{signup.email}</td>
                     <td className="px-5 py-3">
                       <span className="rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-medium text-emerald-700">
                         {signup.plan}
                       </span>
                     </td>
-                    <td className="px-5 py-3 text-slate-500">{signup.joined}</td>
+                    <td className="px-5 py-3 text-slate-600">{signup.district || '-'}</td>
+                    <td className="px-5 py-3 text-slate-500">
+                      {signup.created_at
+                        ? new Date(signup.created_at).toLocaleDateString('en-GB', {
+                            day: '2-digit',
+                            month: 'short',
+                            year: 'numeric',
+                          })
+                        : '-'}
+                    </td>
                   </tr>
                 ))
               )}

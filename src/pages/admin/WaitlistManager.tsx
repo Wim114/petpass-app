@@ -3,7 +3,6 @@ import { useQuery } from '@tanstack/react-query';
 import { Search, Download, ChevronLeft, ChevronRight, Mail, Globe, MapPin } from 'lucide-react';
 import { format } from 'date-fns';
 import { supabase } from '@/lib/supabase';
-import { useLanguage } from '@/i18n/LanguageContext';
 
 interface WaitlistEntry {
   id: string;
@@ -17,7 +16,6 @@ interface WaitlistEntry {
 const PAGE_SIZE = 15;
 
 export default function WaitlistManager() {
-  const { t } = useLanguage();
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
 

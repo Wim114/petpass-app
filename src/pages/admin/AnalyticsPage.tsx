@@ -1,5 +1,4 @@
 import { useQuery } from '@tanstack/react-query';
-import { useLanguage } from '@/i18n/LanguageContext';
 import { apiCall } from '@/lib/api';
 import { Spinner } from '@/components/ui/Spinner';
 import type { AdminStats } from '@/types';
@@ -57,8 +56,6 @@ const tooltipStyle = {
 };
 
 export default function AnalyticsPage() {
-  const { t } = useLanguage();
-
   const { data: stats, isLoading } = useQuery<AdminStats>({
     queryKey: ['admin-stats'],
     queryFn: () => apiCall<AdminStats>('admin-stats', { method: 'GET' }),

@@ -3,14 +3,12 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Search, MoreHorizontal, ChevronLeft, ChevronRight } from 'lucide-react';
 import { format } from 'date-fns';
 import { supabase } from '@/lib/supabase';
-import { useLanguage } from '@/i18n/LanguageContext';
 import type { UserProfile } from '@/types';
 
 const ROLES = ['member', 'admin', 'vetpro'] as const;
 const PAGE_SIZE = 10;
 
 export default function UserManagement() {
-  const { t } = useLanguage();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
