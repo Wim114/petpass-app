@@ -71,12 +71,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       .eq('id', user.id)
       .single();
 
-    if (error) {
-      console.error('[fetchProfile] Error:', error.code, error.message);
-    } else {
-      console.log('[fetchProfile] Loaded profile, role:', data?.role);
-    }
-
     if (!error && data) {
       const profileData = data as UserProfile;
       set({ profile: profileData });
