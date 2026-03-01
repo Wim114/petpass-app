@@ -90,6 +90,14 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
         set({ profile: { ...profileData, ...updates } });
       }
+    } else if (error?.code === 'PGRST116') {
+      // No profile row found — create one via RPC (handles deleted profiles,
+      // missed triggers, etc.)
+      const { data: created, error: rpcError } = await supabase.rpc('ensure_profile_exists');
+
+      if (!rpcError && created) {
+        set({ profile: created as UserProfile });
+      }
     }
   },
 
