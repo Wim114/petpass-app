@@ -1,15 +1,25 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
-const CORS_HEADERS = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization, x-client-info, apikey',
-};
+const allowedOrigins = [
+  process.env.SITE_URL ?? 'https://petpass.app',
+  'http://localhost:3000',
+  'http://localhost:5173',
+].filter(Boolean);
 
-export function setCorsHeaders(res: VercelResponse) {
-  Object.entries(CORS_HEADERS).forEach(([key, value]) => {
-    res.setHeader(key, value);
-  });
+function getOrigin(req: VercelRequest): string {
+  const origin = req.headers.origin ?? '';
+  // Allow Vercel preview deployments
+  if (allowedOrigins.includes(origin) || origin.endsWith('.vercel.app')) {
+    return origin;
+  }
+  return allowedOrigins[0];
+}
+
+export function setCorsHeaders(req: VercelRequest, res: VercelResponse) {
+  res.setHeader('Access-Control-Allow-Origin', getOrigin(req));
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-client-info, apikey');
+  res.setHeader('Vary', 'Origin');
 }
 
 /**
@@ -17,7 +27,7 @@ export function setCorsHeaders(res: VercelResponse) {
  * request and has been handled (caller should return early).
  */
 export function handleCors(req: VercelRequest, res: VercelResponse): boolean {
-  setCorsHeaders(res);
+  setCorsHeaders(req, res);
   if (req.method === 'OPTIONS') {
     res.status(200).end();
     return true;

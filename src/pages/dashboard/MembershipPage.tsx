@@ -109,7 +109,7 @@ export default function MembershipPage() {
   const handleManageBilling = async () => {
     try {
       const data = await apiCall<{ url: string }>('create-portal-session', {
-        body: { customerId: profile?.stripe_customer_id },
+        body: {},
       });
       if (data?.url) {
         window.location.href = data.url;
