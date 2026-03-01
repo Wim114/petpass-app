@@ -52,6 +52,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const [
       { count: totalUsers },
       { count: totalPets },
+      { data: allPets },
       { data: allSubs },
       { data: allPayments },
       { count: waitlistCount },
@@ -59,6 +60,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     ] = await Promise.all([
       supabaseAdmin.from('profiles').select('*', { count: 'exact', head: true }),
       supabaseAdmin.from('pets').select('*', { count: 'exact', head: true }),
+      supabaseAdmin.from('pets').select('birthday, weight_kg'),
       supabaseAdmin.from('subscriptions').select('status, plan, created_at'),
       supabaseAdmin
         .from('payments')
@@ -129,6 +131,25 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       ? Number(((totalPets ?? 0) / (totalUsers ?? 1)).toFixed(1))
       : 0;
 
+    // Pet age and weight averages
+    const petBirthdays = (allPets ?? [])
+      .filter((p: any) => p.birthday)
+      .map((p: any) => {
+        const birth = new Date(p.birthday);
+        const ageYears = (Date.now() - birth.getTime()) / (365.25 * 24 * 60 * 60 * 1000);
+        return ageYears;
+      });
+    const averagePetAge = petBirthdays.length > 0
+      ? Number((petBirthdays.reduce((a: number, b: number) => a + b, 0) / petBirthdays.length).toFixed(1))
+      : null;
+
+    const petWeights = (allPets ?? [])
+      .filter((p: any) => p.weight_kg != null)
+      .map((p: any) => Number(p.weight_kg));
+    const averagePetWeight = petWeights.length > 0
+      ? Number((petWeights.reduce((a: number, b: number) => a + b, 0) / petWeights.length).toFixed(1))
+      : null;
+
     // Revenue by month (last 6 months)
     const revenueByMonth: Array<{ month: string; revenue: number; members: number }> = [];
     const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -179,6 +200,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       trialConversionRate,
       newSignupsThisMonth,
       petsPerUser,
+      totalPets: totalPets ?? 0,
+      averagePetAge,
+      averagePetWeight,
       waitlistSize: waitlistCount ?? 0,
       planDistribution,
       revenueByMonth,

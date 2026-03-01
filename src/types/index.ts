@@ -12,7 +12,7 @@ export type District =
   | '7th (Neubau)' | '8th (Josefstadt)' | '9th (Alsergrund)'
   | 'Other (10-23)';
 
-export type PetType = 'dog' | 'cat' | 'rabbit' | 'other';
+export type PetType = 'dog' | 'cat' | 'bird' | 'fish' | 'rabbit' | 'other';
 
 export type PetAge = 'puppy_kitten' | 'young' | 'adult' | 'senior';
 
@@ -21,13 +21,15 @@ export type VetFrequency = 'rarely' | 'once_year' | 'twice_year' | 'quarterly' |
 export type HealthCondition =
   | 'none'
   | 'allergies'
+  | 'arthritis'
   | 'diabetes'
-  | 'joint_problems'
+  | 'heart_disease'
+  | 'kidney_disease'
+  | 'epilepsy'
+  | 'obesity'
+  | 'dental_disease'
   | 'skin_conditions'
-  | 'digestive_issues'
-  | 'heart_conditions'
-  | 'dental_problems'
-  | 'obesity';
+  | 'anxiety';
 
 export interface PetSurveyData {
   petType: PetType;
@@ -150,6 +152,9 @@ export interface AdminStats {
   trialConversionRate: number;
   newSignupsThisMonth: number;
   petsPerUser: number;
+  totalPets: number;
+  averagePetAge: number | null;
+  averagePetWeight: number | null;
   waitlistSize: number;
   planDistribution: {
     basic: number;

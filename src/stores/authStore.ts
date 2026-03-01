@@ -12,7 +12,7 @@ interface AuthState {
 
   initialize: () => Promise<void>;
   fetchProfile: () => Promise<void>;
-  signUp: (email: string, password: string, metadata?: { first_name?: string; last_name?: string; district?: string }) => Promise<{ error: Error | null }>;
+  signUp: (email: string, password: string, metadata?: { first_name?: string; last_name?: string; district?: string; gdpr_consent?: boolean; marketing_consent?: boolean }) => Promise<{ error: Error | null }>;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signInWithGoogle: () => Promise<{ error: Error | null }>;
   signInWithMagicLink: (email: string) => Promise<{ error: Error | null }>;
@@ -75,13 +75,19 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       const profileData = data as UserProfile;
       set({ profile: profileData });
 
-      // Sync first_name/last_name from auth metadata if profile is missing them
+      // Sync first_name/last_name/consent from auth metadata if profile is missing them
       const meta = user.user_metadata;
       if (!profileData.first_name && meta?.first_name) {
-        const updates: Partial<UserProfile> = {};
+        const updates: Partial<UserProfile> & { gdpr_consent_at?: string } = {};
         if (meta.first_name) updates.first_name = meta.first_name;
         if (meta.last_name) updates.last_name = meta.last_name;
         if (meta.district && !profileData.district) updates.district = meta.district;
+        if (meta.gdpr_consent && !profileData.gdpr_consent_at) {
+          (updates as any).gdpr_consent_at = new Date().toISOString();
+        }
+        if (meta.marketing_consent !== undefined && !profileData.marketing_consent) {
+          updates.marketing_consent = meta.marketing_consent;
+        }
 
         await supabase
           .from('profiles')

@@ -3,7 +3,7 @@ import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Link, useNavigate } from 'react-router-dom';
-import { Eye, EyeOff, UserPlus } from 'lucide-react';
+import { Eye, EyeOff, UserPlus, Shield } from 'lucide-react';
 import { useAuthStore } from '@/stores/authStore';
 import { useLanguage } from '@/i18n/LanguageContext';
 import Spinner from '@/components/ui/Spinner';
@@ -17,6 +17,10 @@ const signupSchema = z
     first_name: z.string().min(1, 'First name is required'),
     last_name: z.string().min(1, 'Last name is required'),
     district: z.string().min(1, 'Please select a district'),
+    gdpr_consent: z.literal(true, {
+      errorMap: () => ({ message: 'You must consent to data processing to create an account' }),
+    }),
+    marketing_consent: z.boolean().optional(),
   })
   .refine((data) => data.password === data.confirmPassword, {
     message: 'Passwords do not match',
@@ -48,6 +52,8 @@ export default function SignupForm() {
       first_name: data.first_name,
       last_name: data.last_name,
       district: data.district,
+      gdpr_consent: true,
+      marketing_consent: data.marketing_consent || false,
     });
     if (error) {
       setError(error.message || 'An error occurred during registration.');
@@ -219,6 +225,47 @@ export default function SignupForm() {
             {errors.confirmPassword && (
               <p className="text-red-500 text-xs mt-1">{errors.confirmPassword.message}</p>
             )}
+          </div>
+
+          {/* Privacy & Consent */}
+          <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 space-y-3">
+            <div className="flex items-center gap-2 text-sm font-medium text-slate-700">
+              <Shield className="w-4 h-4 text-slate-500" />
+              {t.settings?.privacy ?? 'Privacy & Consent'}
+            </div>
+            <label className="flex items-start gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                {...register('gdpr_consent')}
+                className="mt-0.5 w-4 h-4 text-emerald-600 border-slate-300 rounded focus:ring-emerald-500"
+              />
+              <div>
+                <p className="text-xs text-slate-700">
+                  {t.settings?.gdprConsent ?? 'GDPR Data Processing Consent'} <span className="text-red-500">*</span>
+                </p>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  {t.settings?.gdprDesc ?? 'I consent to the processing of my personal data as described in the Privacy Policy.'}
+                </p>
+              </div>
+            </label>
+            {errors.gdpr_consent && (
+              <p className="text-red-500 text-xs">{errors.gdpr_consent.message}</p>
+            )}
+            <label className="flex items-start gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                {...register('marketing_consent')}
+                className="mt-0.5 w-4 h-4 text-emerald-600 border-slate-300 rounded focus:ring-emerald-500"
+              />
+              <div>
+                <p className="text-xs text-slate-700">
+                  {t.settings?.marketingConsent ?? 'Marketing Communications'}
+                </p>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  {t.settings?.marketingDesc ?? 'I agree to receive promotional emails, newsletters, and marketing communications.'}
+                </p>
+              </div>
+            </label>
           </div>
 
           <button
