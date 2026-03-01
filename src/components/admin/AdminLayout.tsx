@@ -12,7 +12,6 @@ import {
   ShieldCheck,
 } from 'lucide-react';
 import { useAuthStore } from '@/stores/authStore';
-import { useLanguage } from '@/i18n/LanguageContext';
 
 const navItems = [
   { to: '/admin', icon: LayoutDashboard, label: 'Overview', end: true },
@@ -25,7 +24,6 @@ const navItems = [
 export default function AdminLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { signOut } = useAuthStore();
-  const { t } = useLanguage();
   const navigate = useNavigate();
 
   const handleSignOut = async () => {
@@ -101,7 +99,7 @@ export default function AdminLayout() {
               className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-300 transition-colors hover:bg-slate-800 hover:text-white"
             >
               <LogOut className="h-5 w-5" />
-              {t('signOut') || 'Sign Out'}
+              Sign Out
             </button>
           </div>
         </div>
