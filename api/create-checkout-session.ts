@@ -1,9 +1,18 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { stripe } from './_lib/stripe';
-import { supabaseAdmin } from './_lib/supabase';
+import { supabaseAdmin, verifyUser } from './_lib/supabase';
 import { handleCors } from './_lib/cors';
 
 const siteUrl = process.env.SITE_URL ?? 'https://petpass.app';
+
+// Only allow known Stripe price IDs from environment
+const ALLOWED_PRICE_IDS = new Set(
+  [
+    process.env.STRIPE_PRICE_BASIC,
+    process.env.STRIPE_PRICE_CARE_PLUS,
+    process.env.STRIPE_PRICE_VIP,
+  ].filter(Boolean)
+);
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (handleCors(req, res)) return;
@@ -13,10 +22,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    const { priceId, userId } = req.body;
+    // Verify the caller's JWT
+    const user = await verifyUser(req.headers.authorization);
+    if (!user) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
 
-    if (!priceId || !userId) {
-      return res.status(400).json({ error: 'priceId and userId are required' });
+    const { priceId } = req.body;
+    const userId = user.id;
+
+    if (!priceId) {
+      return res.status(400).json({ error: 'priceId is required' });
+    }
+
+    // Validate priceId against allowed plans
+    if (ALLOWED_PRICE_IDS.size > 0 && !ALLOWED_PRICE_IDS.has(priceId)) {
+      return res.status(400).json({ error: 'Invalid plan selected' });
     }
 
     // Fetch user profile to get or create Stripe customer
@@ -63,6 +84,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(200).json({ sessionId: session.id, url: session.url });
   } catch (err) {
     console.error('Error creating checkout session:', err);
-    return res.status(500).json({ error: (err as Error).message });
+    return res.status(500).json({ error: 'Failed to create checkout session' });
   }
 }

@@ -1,6 +1,7 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { PawPrint, CreditCard, Plus, Crown, ArrowRight } from 'lucide-react';
+import { PawPrint, CreditCard, Plus, Crown, ArrowRight, Copy, Check, Users } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/stores/authStore';
 import { useLanguage } from '@/i18n/LanguageContext';
@@ -10,6 +11,7 @@ import type { Pet, Subscription } from '@/types';
 export default function DashboardHome() {
   const { t } = useLanguage();
   const { profile, user } = useAuthStore();
+  const [copied, setCopied] = useState(false);
 
   const { data: pets = [], isLoading: petsLoading } = useQuery<Pet[]>({
     queryKey: ['pets', user?.id],
@@ -187,6 +189,72 @@ export default function DashboardHome() {
           </Link>
         </div>
       </div>
+
+      {/* Pet Summary */}
+      {pets.length > 0 && (
+        <div>
+          <h2 className="text-lg font-semibold text-slate-800 mb-4">
+            {t.dashboard?.petSummary ?? 'Your Pets'}
+          </h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {pets.map((pet) => (
+              <Link
+                key={pet.id}
+                to="/dashboard/pets"
+                className="flex items-center gap-3 bg-white rounded-xl border border-slate-200 p-4 hover:border-emerald-300 hover:shadow-sm transition"
+              >
+                <div className="w-10 h-10 bg-emerald-100 rounded-xl flex items-center justify-center text-emerald-600">
+                  <PawPrint className="w-5 h-5" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-slate-800 truncate">{pet.name}</p>
+                  <p className="text-xs text-slate-500 capitalize">
+                    {pet.type}
+                    {pet.breed ? ` - ${pet.breed}` : ''}
+                    {pet.weight_kg ? ` | ${pet.weight_kg} kg` : ''}
+                    {pet.birthday ? ` | ${Math.floor((Date.now() - new Date(pet.birthday).getTime()) / (365.25 * 24 * 60 * 60 * 1000))}y` : ''}
+                  </p>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Referral Code */}
+      {profile?.referral_code && (
+        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-10 h-10 bg-indigo-100 rounded-xl flex items-center justify-center">
+              <Users className="w-5 h-5 text-indigo-600" />
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold text-slate-800">
+                {t.referral?.title ?? 'Refer a Friend'}
+              </h2>
+              <p className="text-xs text-slate-500">
+                {t.referral?.description ?? 'When a friend signs up with your code, you both get 1 month free!'}
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <code className="flex-1 bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 text-sm font-mono text-slate-800">
+              {profile.referral_code}
+            </code>
+            <button
+              onClick={() => {
+                navigator.clipboard.writeText(profile.referral_code!);
+                setCopied(true);
+                setTimeout(() => setCopied(false), 2000);
+              }}
+              className="flex items-center gap-1.5 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-lg transition"
+            >
+              {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+              {copied ? (t.common?.copied ?? 'Copied!') : (t.common?.copyToClipboard ?? 'Copy')}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -10,6 +10,7 @@ import {
   Trash2,
   AlertTriangle,
 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/stores/authStore';
 import { useLanguage } from '@/i18n/LanguageContext';
 import { supabase } from '@/lib/supabase';
@@ -30,11 +31,12 @@ type PasswordFormData = z.infer<typeof passwordSchema>;
 
 export default function SettingsPage() {
   const { t, lang, setLang } = useLanguage();
+  const navigate = useNavigate();
   const { updatePassword, signOut, profile, user, updateProfile, isLoading } =
     useAuthStore();
 
   const [gdprConsent, setGdprConsent] = useState(
-    profile?.gdpr_consent ?? false
+    !!profile?.gdpr_consent_at
   );
   const [marketingConsent, setMarketingConsent] = useState(
     profile?.marketing_consent ?? false
@@ -47,6 +49,7 @@ export default function SettingsPage() {
   const [deleteConfirm, setDeleteConfirm] = useState(false);
   const [deleteText, setDeleteText] = useState('');
   const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const {
     register,
@@ -62,21 +65,24 @@ export default function SettingsPage() {
   };
 
   const handleConsentChange = async (
-    field: 'gdpr_consent' | 'marketing_consent',
+    field: 'gdpr_consent_at' | 'marketing_consent',
     value: boolean
   ) => {
-    if (field === 'gdpr_consent') setGdprConsent(value);
+    if (field === 'gdpr_consent_at') setGdprConsent(value);
     if (field === 'marketing_consent') setMarketingConsent(value);
 
     setConsentSaving(true);
     try {
+      const updateValue = field === 'gdpr_consent_at'
+        ? { gdpr_consent_at: value ? new Date().toISOString() : null }
+        : { marketing_consent: value };
       await supabase
         .from('profiles')
-        .update({ [field]: value })
+        .update(updateValue)
         .eq('id', user!.id);
     } catch {
       // Revert on error
-      if (field === 'gdpr_consent') setGdprConsent(!value);
+      if (field === 'gdpr_consent_at') setGdprConsent(!value);
       if (field === 'marketing_consent') setMarketingConsent(!value);
     } finally {
       setConsentSaving(false);
@@ -99,10 +105,13 @@ export default function SettingsPage() {
   const handleDeleteAccount = async () => {
     if (deleteText !== 'DELETE') return;
     setDeleting(true);
+    setDeleteError(null);
     try {
       await apiCall('delete-account');
       await signOut();
-    } catch {
+      navigate('/');
+    } catch (err: any) {
+      setDeleteError(err.message || 'Failed to delete account. Please try again.');
       setDeleting(false);
     }
   };
@@ -164,7 +173,7 @@ export default function SettingsPage() {
               type="checkbox"
               checked={gdprConsent}
               onChange={(e) =>
-                handleConsentChange('gdpr_consent', e.target.checked)
+                handleConsentChange('gdpr_consent_at', e.target.checked)
               }
               disabled={consentSaving}
               className="mt-0.5 w-5 h-5 text-emerald-600 border-slate-300 rounded focus:ring-emerald-500"
@@ -288,6 +297,12 @@ export default function SettingsPage() {
           {t.settings?.deleteAccountDesc ??
             'Once you delete your account, all of your data will be permanently removed. This action cannot be undone.'}
         </p>
+
+        {deleteError && (
+          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+            {deleteError}
+          </div>
+        )}
 
         {!deleteConfirm ? (
           <button

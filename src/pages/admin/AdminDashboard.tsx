@@ -21,6 +21,8 @@ import {
   PawPrint,
   ClipboardList,
   Percent,
+  Scale,
+  Calendar,
 } from 'lucide-react';
 import { apiCall } from '@/lib/api';
 import type { AdminStats } from '@/types';
@@ -36,6 +38,9 @@ const mockStats: AdminStats = {
   trialConversionRate: 68,
   newSignupsThisMonth: 12,
   petsPerUser: 1.4,
+  totalPets: 66,
+  averagePetAge: 4.2,
+  averagePetWeight: 18.5,
   waitlistSize: 234,
   planDistribution: { basic: 18, care_plus: 21, vip: 8 },
   revenueByMonth: [
@@ -221,6 +226,45 @@ export default function AdminDashboard() {
         </div>
       </div>
 
+      {/* Pet Overview */}
+      <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+        <h2 className="mb-4 text-lg font-semibold text-slate-900">Pet Overview</h2>
+        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+          <div className="rounded-lg bg-emerald-50 p-4">
+            <div className="flex items-center gap-2">
+              <PawPrint className="h-4 w-4 text-emerald-600" />
+              <span className="text-sm text-slate-600">Total Pets</span>
+            </div>
+            <p className="mt-1 text-2xl font-bold text-slate-900">{s.totalPets}</p>
+          </div>
+          <div className="rounded-lg bg-blue-50 p-4">
+            <div className="flex items-center gap-2">
+              <Users className="h-4 w-4 text-blue-600" />
+              <span className="text-sm text-slate-600">Pets / User</span>
+            </div>
+            <p className="mt-1 text-2xl font-bold text-slate-900">{s.petsPerUser}</p>
+          </div>
+          <div className="rounded-lg bg-amber-50 p-4">
+            <div className="flex items-center gap-2">
+              <Calendar className="h-4 w-4 text-amber-600" />
+              <span className="text-sm text-slate-600">Avg. Age</span>
+            </div>
+            <p className="mt-1 text-2xl font-bold text-slate-900">
+              {s.averagePetAge != null ? `${s.averagePetAge} yr` : 'N/A'}
+            </p>
+          </div>
+          <div className="rounded-lg bg-purple-50 p-4">
+            <div className="flex items-center gap-2">
+              <Scale className="h-4 w-4 text-purple-600" />
+              <span className="text-sm text-slate-600">Avg. Weight</span>
+            </div>
+            <p className="mt-1 text-2xl font-bold text-slate-900">
+              {s.averagePetWeight != null ? `${s.averagePetWeight} kg` : 'N/A'}
+            </p>
+          </div>
+        </div>
+      </div>
+
       {/* Quick Stats */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
@@ -229,13 +273,6 @@ export default function AdminDashboard() {
             <span className="text-sm text-slate-500">New This Month</span>
           </div>
           <p className="mt-1 text-xl font-bold text-slate-900">{s.newSignupsThisMonth}</p>
-        </div>
-        <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-          <div className="flex items-center gap-2">
-            <PawPrint className="h-4 w-4 text-emerald-500" />
-            <span className="text-sm text-slate-500">Pets / User</span>
-          </div>
-          <p className="mt-1 text-xl font-bold text-slate-900">{s.petsPerUser}</p>
         </div>
         <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
           <div className="flex items-center gap-2">
@@ -252,6 +289,13 @@ export default function AdminDashboard() {
           <p className="mt-1 text-xl font-bold text-slate-900">
             {Object.values(s.planDistribution).reduce((a, b) => a + b, 0)}
           </p>
+        </div>
+        <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="flex items-center gap-2">
+            <PawPrint className="h-4 w-4 text-emerald-500" />
+            <span className="text-sm text-slate-500">Total Pets</span>
+          </div>
+          <p className="mt-1 text-xl font-bold text-slate-900">{s.totalPets}</p>
         </div>
       </div>
 
