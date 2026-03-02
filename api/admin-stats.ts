@@ -32,19 +32,23 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     // Try to read dynamic plan prices from site_config
-    const { data: planConfigRows } = await supabaseAdmin
-      .from('site_config')
-      .select('value')
-      .eq('key', 'plan_config')
-      .single();
-
     const dynamicPrices = { ...PLAN_PRICES };
-    if (planConfigRows?.value?.plans) {
-      for (const plan of planConfigRows.value.plans) {
-        if (plan.key && plan.price != null) {
-          dynamicPrices[plan.key] = plan.price;
+    try {
+      const { data: planConfigRows } = await supabaseAdmin
+        .from('site_config')
+        .select('value')
+        .eq('key', 'plan_config')
+        .single();
+
+      if (planConfigRows?.value?.plans) {
+        for (const plan of planConfigRows.value.plans) {
+          if (plan.key && plan.price != null) {
+            dynamicPrices[plan.key] = plan.price;
+          }
         }
       }
+    } catch {
+      // site_config table may not exist yet; use default prices
     }
 
     // --- Fetch raw data ---
@@ -175,19 +179,39 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       });
     }
 
-    // Recent signups (join with subscription info)
-    const { data: recentSignupRows } = await supabaseAdmin
-      .from('profiles')
-      .select('email, created_at, subscriptions(plan)')
-      .order('created_at', { ascending: false })
-      .limit(10);
+    // Recent signups - fetch profiles and subscriptions separately to avoid embed errors
+    const recentProfilesList = recentProfiles ?? [];
+    let recentSignups: Array<{ email: string; plan: string; district: string; created_at: string }> = [];
 
-    const recentSignups = (recentSignupRows ?? []).map((row: any) => ({
-      email: row.email,
-      plan: row.subscriptions?.[0]?.plan ?? 'waitlist',
-      district: '',
-      created_at: row.created_at,
-    }));
+    if (recentProfilesList.length > 0) {
+      const profileEmails = recentProfilesList.map((p: any) => p.email);
+      const { data: profilesWithIds } = await supabaseAdmin
+        .from('profiles')
+        .select('id, email, created_at')
+        .in('email', profileEmails);
+
+      const profileIds = (profilesWithIds ?? []).map((p: any) => p.id);
+      const { data: recentSubs } = profileIds.length > 0
+        ? await supabaseAdmin
+            .from('subscriptions')
+            .select('user_id, plan')
+            .in('user_id', profileIds)
+        : { data: [] };
+
+      const subsByUser = new Map<string, string>();
+      for (const sub of recentSubs ?? []) {
+        if (!subsByUser.has(sub.user_id)) {
+          subsByUser.set(sub.user_id, sub.plan);
+        }
+      }
+
+      recentSignups = (profilesWithIds ?? []).map((row: any) => ({
+        email: row.email,
+        plan: subsByUser.get(row.id) ?? 'waitlist',
+        district: '',
+        created_at: row.created_at,
+      }));
+    }
 
     const stats = {
       totalMembers,

@@ -13,7 +13,7 @@ export type District =
   | '7th (Neubau)' | '8th (Josefstadt)' | '9th (Alsergrund)' 
   | 'Other (10-23)';
 
-export type PetType = 'dog' | 'cat' | 'rabbit' | 'other';
+export type PetType = 'dog' | 'cat' | 'bird' | 'fish' | 'rabbit' | 'other';
 
 export type PetAge = 'puppy_kitten' | 'young' | 'adult' | 'senior';
 

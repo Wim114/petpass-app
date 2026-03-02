@@ -104,28 +104,40 @@ export default function PetManager() {
     enabled: !!user?.id,
   });
 
+  const [mutationError, setMutationError] = useState<string | null>(null);
+
   const createMutation = useMutation({
     mutationFn: async (data: PetFormData) => {
+      const weightVal = typeof data.weight_kg === 'number' && !isNaN(data.weight_kg)
+        ? data.weight_kg
+        : null;
       const { error } = await supabase.from('pets').insert({
         owner_id: user!.id,
         name: data.name,
         type: data.type,
         breed: data.breed || null,
         birthday: data.birthday || null,
-        weight_kg: data.weight_kg || null,
+        weight_kg: weightVal,
         health_conditions: data.health_conditions || [],
         notes: data.notes || null,
       });
       if (error) throw error;
     },
     onSuccess: () => {
+      setMutationError(null);
       queryClient.invalidateQueries({ queryKey: ['pets', user?.id] });
       closeModal();
+    },
+    onError: (err: any) => {
+      setMutationError(err?.message || 'Failed to save pet. Please try again.');
     },
   });
 
   const updateMutation = useMutation({
     mutationFn: async ({ id, data }: { id: string; data: PetFormData }) => {
+      const weightVal = typeof data.weight_kg === 'number' && !isNaN(data.weight_kg)
+        ? data.weight_kg
+        : null;
       const { error } = await supabase
         .from('pets')
         .update({
@@ -133,7 +145,7 @@ export default function PetManager() {
           type: data.type,
           breed: data.breed || null,
           birthday: data.birthday || null,
-          weight_kg: data.weight_kg || null,
+          weight_kg: weightVal,
           health_conditions: data.health_conditions || [],
           notes: data.notes || null,
         })
@@ -141,8 +153,12 @@ export default function PetManager() {
       if (error) throw error;
     },
     onSuccess: () => {
+      setMutationError(null);
       queryClient.invalidateQueries({ queryKey: ['pets', user?.id] });
       closeModal();
+    },
+    onError: (err: any) => {
+      setMutationError(err?.message || 'Failed to update pet. Please try again.');
     },
   });
 
@@ -159,6 +175,7 @@ export default function PetManager() {
 
   const openAddModal = () => {
     setEditingPet(null);
+    setMutationError(null);
     reset({
       name: '',
       type: '',
@@ -173,6 +190,7 @@ export default function PetManager() {
 
   const openEditModal = (pet: Pet) => {
     setEditingPet(pet);
+    setMutationError(null);
     reset({
       name: pet.name,
       type: pet.type,
@@ -489,6 +507,12 @@ export default function PetManager() {
                   }
                 />
               </div>
+
+              {mutationError && (
+                <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                  {mutationError}
+                </div>
+              )}
 
               <div className="flex gap-3 pt-2">
                 <button
