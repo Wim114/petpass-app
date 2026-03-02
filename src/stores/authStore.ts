@@ -22,6 +22,9 @@ interface AuthState {
   updateProfile: (updates: Partial<UserProfile>) => Promise<{ error: Error | null }>;
 }
 
+// Track the auth subscription so we can clean it up on re-initialization (e.g. HMR)
+let authSubscription: { unsubscribe: () => void } | null = null;
+
 export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
   session: null,
@@ -30,6 +33,13 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   isInitialized: false,
 
   initialize: async () => {
+    // Prevent duplicate initialization and clean up previous listener
+    if (get().isInitialized) return;
+    if (authSubscription) {
+      authSubscription.unsubscribe();
+      authSubscription = null;
+    }
+
     try {
       const { data: { session } } = await supabase.auth.getSession();
 
@@ -44,7 +54,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         await get().fetchProfile();
       }
 
-      supabase.auth.onAuthStateChange(async (_event, session) => {
+      const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
         set({
           session,
           user: session?.user ?? null,
@@ -56,6 +66,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           set({ profile: null });
         }
       });
+      authSubscription = subscription;
     } catch {
       set({ isLoading: false, isInitialized: true });
     }
