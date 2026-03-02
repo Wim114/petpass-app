@@ -73,6 +73,7 @@ export default function PetManager() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingPet, setEditingPet] = useState<Pet | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  const [mutationError, setMutationError] = useState<string | null>(null);
 
   const {
     register,
@@ -119,8 +120,12 @@ export default function PetManager() {
       if (error) throw error;
     },
     onSuccess: () => {
+      setMutationError(null);
       queryClient.invalidateQueries({ queryKey: ['pets', user?.id] });
       closeModal();
+    },
+    onError: (err: any) => {
+      setMutationError(err?.message || 'Failed to add pet. Please try again.');
     },
   });
 
@@ -141,8 +146,12 @@ export default function PetManager() {
       if (error) throw error;
     },
     onSuccess: () => {
+      setMutationError(null);
       queryClient.invalidateQueries({ queryKey: ['pets', user?.id] });
       closeModal();
+    },
+    onError: (err: any) => {
+      setMutationError(err?.message || 'Failed to update pet. Please try again.');
     },
   });
 
@@ -159,6 +168,7 @@ export default function PetManager() {
 
   const openAddModal = () => {
     setEditingPet(null);
+    setMutationError(null);
     reset({
       name: '',
       type: '',
@@ -173,6 +183,7 @@ export default function PetManager() {
 
   const openEditModal = (pet: Pet) => {
     setEditingPet(pet);
+    setMutationError(null);
     reset({
       name: pet.name,
       type: pet.type,
@@ -489,6 +500,12 @@ export default function PetManager() {
                   }
                 />
               </div>
+
+              {mutationError && (
+                <div className="rounded-lg bg-red-50 border border-red-200 p-3 text-sm text-red-700">
+                  {mutationError}
+                </div>
+              )}
 
               <div className="flex gap-3 pt-2">
                 <button

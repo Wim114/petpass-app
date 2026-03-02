@@ -31,33 +31,29 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(403).json({ error: 'Forbidden: admin role required' });
     }
 
-    // Try to read dynamic plan prices from site_config
-    const { data: planConfigRows } = await supabaseAdmin
-      .from('site_config')
-      .select('value')
-      .eq('key', 'plan_config')
-      .single();
-
+    // Try to read dynamic plan prices from site_config (table may not exist)
     const dynamicPrices = { ...PLAN_PRICES };
-    if (planConfigRows?.value?.plans) {
-      for (const plan of planConfigRows.value.plans) {
-        if (plan.key && plan.price != null) {
-          dynamicPrices[plan.key] = plan.price;
+    try {
+      const { data: planConfigRows } = await supabaseAdmin
+        .from('site_config')
+        .select('value')
+        .eq('key', 'plan_config')
+        .single();
+
+      if (planConfigRows?.value?.plans) {
+        for (const plan of planConfigRows.value.plans) {
+          if (plan.key && plan.price != null) {
+            dynamicPrices[plan.key] = plan.price;
+          }
         }
       }
+    } catch {
+      // site_config table may not exist yet — use hardcoded defaults
     }
 
-    // --- Fetch raw data ---
+    // --- Fetch raw data (each query handled individually) ---
 
-    const [
-      { count: totalUsers },
-      { count: totalPets },
-      { data: allPets },
-      { data: allSubs },
-      { data: allPayments },
-      { count: waitlistCount },
-      { data: recentProfiles },
-    ] = await Promise.all([
+    const results = await Promise.allSettled([
       supabaseAdmin.from('profiles').select('*', { count: 'exact', head: true }),
       supabaseAdmin.from('pets').select('*', { count: 'exact', head: true }),
       supabaseAdmin.from('pets').select('birthday, weight_kg'),
@@ -74,12 +70,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         .limit(10),
     ]);
 
+    const settled = (i: number) =>
+      results[i].status === 'fulfilled' ? results[i].value : { data: null, count: null };
+
+    const totalUsers = settled(0).count ?? 0;
+    const totalPets = settled(1).count ?? 0;
+    const allPets = settled(2).data ?? [];
+    const allSubs = settled(3).data ?? [];
+    const allPayments = settled(4).data ?? [];
+    const waitlistCount = settled(5).count ?? 0;
+
     // --- Compute KPIs ---
 
-    const activeSubs = allSubs?.filter(
-      (s) => s.status === 'active' || s.status === 'trialing'
-    ) ?? [];
-    const cancelledSubs = allSubs?.filter((s) => s.status === 'cancelled') ?? [];
+    const activeSubs = allSubs.filter(
+      (s: any) => s.status === 'active' || s.status === 'trialing'
+    );
+    const cancelledSubs = allSubs.filter((s: any) => s.status === 'cancelled');
     const totalMembers = activeSubs.length;
 
     // Plan distribution
@@ -92,13 +98,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     // MRR: sum of each active member's plan price
     const mrr = activeSubs.reduce(
-      (sum, sub) => sum + (dynamicPrices[sub.plan] ?? 0),
+      (sum: number, sub: any) => sum + (dynamicPrices[sub.plan] ?? 0),
       0
     );
     const arr = mrr * 12;
 
     // Churn & retention
-    const totalEver = (allSubs?.length ?? 0) || 1;
+    const totalEver = allSubs.length || 1;
     const churnRate = totalEver > 0
       ? Number(((cancelledSubs.length / totalEver) * 100).toFixed(1))
       : 0;
@@ -112,8 +118,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const ltv = Number((arpu * avgLifetimeMonths).toFixed(1));
 
     // Trial conversion
-    const trialingSubs = allSubs?.filter((s) => s.status === 'trialing') ?? [];
-    const convertedFromTrial = allSubs?.filter((s) => s.status === 'active') ?? [];
+    const trialingSubs = allSubs.filter((s: any) => s.status === 'trialing');
+    const convertedFromTrial = allSubs.filter((s: any) => s.status === 'active');
     const trialPool = trialingSubs.length + convertedFromTrial.length;
     const trialConversionRate = trialPool > 0
       ? Number(((convertedFromTrial.length / trialPool) * 100).toFixed(0))
@@ -122,17 +128,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // New signups this month
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
-    const newSignupsThisMonth = allSubs?.filter(
-      (s) => s.created_at >= startOfMonth
-    ).length ?? 0;
+    const newSignupsThisMonth = allSubs.filter(
+      (s: any) => s.created_at >= startOfMonth
+    ).length;
 
     // Pets per user
-    const petsPerUser = (totalUsers ?? 0) > 0
-      ? Number(((totalPets ?? 0) / (totalUsers ?? 1)).toFixed(1))
+    const petsPerUser = totalUsers > 0
+      ? Number((totalPets / totalUsers).toFixed(1))
       : 0;
 
     // Pet age and weight averages
-    const petBirthdays = (allPets ?? [])
+    const petBirthdays = allPets
       .filter((p: any) => p.birthday)
       .map((p: any) => {
         const birth = new Date(p.birthday);
@@ -143,14 +149,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       ? Number((petBirthdays.reduce((a: number, b: number) => a + b, 0) / petBirthdays.length).toFixed(1))
       : null;
 
-    const petWeights = (allPets ?? [])
+    const petWeights = allPets
       .filter((p: any) => p.weight_kg != null)
       .map((p: any) => Number(p.weight_kg));
     const averagePetWeight = petWeights.length > 0
       ? Number((petWeights.reduce((a: number, b: number) => a + b, 0) / petWeights.length).toFixed(1))
       : null;
 
-    // Revenue by month (last 6 months)
+    // Revenue by month (last 5 months)
     const revenueByMonth: Array<{ month: string; revenue: number; members: number }> = [];
     const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     for (let i = 4; i >= 0; i--) {
@@ -159,14 +165,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const nextMonth = new Date(d.getFullYear(), d.getMonth() + 1, 1).toISOString();
 
       const monthRevenue = allPayments
-        ?.filter((p) => p.created_at >= monthStart && p.created_at < nextMonth)
-        .reduce((sum, p) => sum + (p.amount_cents ?? 0), 0) ?? 0;
+        .filter((p: any) => p.created_at >= monthStart && p.created_at < nextMonth)
+        .reduce((sum: number, p: any) => sum + (p.amount_cents ?? 0), 0);
 
-      const monthMembers = allSubs?.filter(
-        (s) =>
+      const monthMembers = allSubs.filter(
+        (s: any) =>
           s.created_at < nextMonth &&
           (s.status === 'active' || s.status === 'trialing')
-      ).length ?? 0;
+      ).length;
 
       revenueByMonth.push({
         month: monthNames[d.getMonth()],
@@ -175,19 +181,24 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       });
     }
 
-    // Recent signups (join with subscription info)
-    const { data: recentSignupRows } = await supabaseAdmin
-      .from('profiles')
-      .select('email, created_at, subscriptions(plan)')
-      .order('created_at', { ascending: false })
-      .limit(10);
+    // Recent signups (join with subscription info — wrapped in try-catch)
+    let recentSignups: Array<{ email: string; plan: string; district: string; created_at: string }> = [];
+    try {
+      const { data: recentSignupRows } = await supabaseAdmin
+        .from('profiles')
+        .select('email, created_at, subscriptions(plan)')
+        .order('created_at', { ascending: false })
+        .limit(10);
 
-    const recentSignups = (recentSignupRows ?? []).map((row: any) => ({
-      email: row.email,
-      plan: row.subscriptions?.[0]?.plan ?? 'waitlist',
-      district: '',
-      created_at: row.created_at,
-    }));
+      recentSignups = (recentSignupRows ?? []).map((row: any) => ({
+        email: row.email,
+        plan: row.subscriptions?.[0]?.plan ?? 'waitlist',
+        district: '',
+        created_at: row.created_at,
+      }));
+    } catch {
+      // Embedded query may fail — return empty signups list
+    }
 
     const stats = {
       totalMembers,
@@ -200,10 +211,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       trialConversionRate,
       newSignupsThisMonth,
       petsPerUser,
-      totalPets: totalPets ?? 0,
+      totalPets,
       averagePetAge,
       averagePetWeight,
-      waitlistSize: waitlistCount ?? 0,
+      waitlistSize: waitlistCount,
       planDistribution,
       revenueByMonth,
       recentSignups,
