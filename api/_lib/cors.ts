@@ -17,7 +17,7 @@ function getOrigin(req: VercelRequest): string {
 
 export function setCorsHeaders(req: VercelRequest, res: VercelResponse) {
   res.setHeader('Access-Control-Allow-Origin', getOrigin(req));
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-client-info, apikey');
   res.setHeader('Vary', 'Origin');
 }

@@ -143,6 +143,7 @@ export interface PlanConfig {
 
 export interface AdminStats {
   totalMembers: number;
+  totalUsers: number;
   mrr: number;
   arr: number;
   churnRate: number;
@@ -166,10 +167,26 @@ export interface AdminStats {
     revenue: number;
     members: number;
   }>;
+  memberGrowth: Array<{
+    month: string;
+    newMembers: number;
+    churned: number;
+  }>;
   recentSignups: Array<{
     email: string;
     plan: PlanType;
     district: string;
     created_at: string;
   }>;
+  petTypeDistribution: Record<string, number>;
+  weightBuckets: Record<string, number>;
+  ageCategoryDistribution: Record<string, number>;
+  healthConditionFrequency: Record<string, number>;
+  topBreeds: Array<{ breed: string; count: number }>;
+  weightStats: {
+    min: number;
+    max: number;
+    mean: number;
+    median: number;
+  } | null;
 }
