@@ -56,7 +56,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const results = await Promise.allSettled([
       supabaseAdmin.from('profiles').select('*', { count: 'exact', head: true }),
       supabaseAdmin.from('pets').select('*', { count: 'exact', head: true }),
-      supabaseAdmin.from('pets').select('birthday, weight_kg'),
+      supabaseAdmin.from('pets').select('type, breed, age_category, birthday, weight_kg, health_conditions'),
       supabaseAdmin.from('subscriptions').select('status, plan, created_at'),
       supabaseAdmin
         .from('payments')
@@ -156,9 +156,103 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       ? Number((petWeights.reduce((a: number, b: number) => a + b, 0) / petWeights.length).toFixed(1))
       : null;
 
+    // --- Pet descriptive statistics ---
+
+    // Type distribution
+    const petTypeDistribution: Record<string, number> = {};
+    for (const pet of allPets) {
+      const t = pet.type || 'unknown';
+      petTypeDistribution[t] = (petTypeDistribution[t] || 0) + 1;
+    }
+
+    // Size / weight distribution (buckets)
+    const weightBuckets = { 'Under 5kg': 0, '5-10kg': 0, '10-20kg': 0, '20-40kg': 0, 'Over 40kg': 0, 'Unknown': 0 };
+    for (const pet of allPets) {
+      const w = pet.weight_kg != null ? Number(pet.weight_kg) : null;
+      if (w == null) { weightBuckets['Unknown'] += 1; }
+      else if (w < 5) { weightBuckets['Under 5kg'] += 1; }
+      else if (w < 10) { weightBuckets['5-10kg'] += 1; }
+      else if (w < 20) { weightBuckets['10-20kg'] += 1; }
+      else if (w < 40) { weightBuckets['20-40kg'] += 1; }
+      else { weightBuckets['Over 40kg'] += 1; }
+    }
+
+    // Age category distribution
+    const ageCategoryDistribution: Record<string, number> = {};
+    for (const pet of allPets) {
+      const cat = pet.age_category || 'unknown';
+      ageCategoryDistribution[cat] = (ageCategoryDistribution[cat] || 0) + 1;
+    }
+
+    // Health condition frequency
+    const healthConditionFrequency: Record<string, number> = {};
+    for (const pet of allPets) {
+      const conditions = Array.isArray(pet.health_conditions) ? pet.health_conditions : [];
+      if (conditions.length === 0) {
+        healthConditionFrequency['none'] = (healthConditionFrequency['none'] || 0) + 1;
+      } else {
+        for (const condition of conditions) {
+          healthConditionFrequency[condition] = (healthConditionFrequency[condition] || 0) + 1;
+        }
+      }
+    }
+
+    // Top breeds
+    const breedCounts: Record<string, number> = {};
+    for (const pet of allPets) {
+      const breed = pet.breed || 'Unknown';
+      breedCounts[breed] = (breedCounts[breed] || 0) + 1;
+    }
+    const topBreeds = Object.entries(breedCounts)
+      .sort(([, a], [, b]) => b - a)
+      .slice(0, 10)
+      .map(([breed, count]) => ({ breed, count }));
+
+    // Weight statistics
+    const weightStats = petWeights.length > 0
+      ? {
+          min: Number(Math.min(...petWeights).toFixed(1)),
+          max: Number(Math.max(...petWeights).toFixed(1)),
+          mean: averagePetWeight!,
+          median: Number(
+            (() => {
+              const sorted = [...petWeights].sort((a, b) => a - b);
+              const mid = Math.floor(sorted.length / 2);
+              return sorted.length % 2 !== 0 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+            })().toFixed(1)
+          ),
+        }
+      : null;
+
+    // Month names for charts
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+    // Member growth (last 5 months — new vs churned)
+    const memberGrowth: Array<{ month: string; newMembers: number; churned: number }> = [];
+    for (let i = 4; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const monthStart = d.toISOString();
+      const nextMonth = new Date(d.getFullYear(), d.getMonth() + 1, 1).toISOString();
+
+      const newInMonth = allSubs.filter(
+        (s: any) => s.created_at >= monthStart && s.created_at < nextMonth
+      ).length;
+      const churnedInMonth = allSubs.filter(
+        (s: any) =>
+          s.status === 'cancelled' &&
+          s.created_at < nextMonth &&
+          s.created_at >= monthStart
+      ).length;
+
+      memberGrowth.push({
+        month: monthNames[d.getMonth()],
+        newMembers: newInMonth,
+        churned: churnedInMonth,
+      });
+    }
+
     // Revenue by month (last 5 months)
     const revenueByMonth: Array<{ month: string; revenue: number; members: number }> = [];
-    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     for (let i = 4; i >= 0; i--) {
       const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
       const monthStart = d.toISOString();
@@ -186,14 +280,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     try {
       const { data: recentSignupRows } = await supabaseAdmin
         .from('profiles')
-        .select('email, created_at, subscriptions(plan)')
+        .select('email, district, created_at, subscriptions(plan)')
         .order('created_at', { ascending: false })
         .limit(10);
 
       recentSignups = (recentSignupRows ?? []).map((row: any) => ({
         email: row.email,
         plan: row.subscriptions?.[0]?.plan ?? 'waitlist',
-        district: '',
+        district: row.district ?? '',
         created_at: row.created_at,
       }));
     } catch {
@@ -202,6 +296,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const stats = {
       totalMembers,
+      totalUsers,
       mrr,
       arr,
       churnRate,
@@ -217,7 +312,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       waitlistSize: waitlistCount,
       planDistribution,
       revenueByMonth,
+      memberGrowth,
       recentSignups,
+      petTypeDistribution,
+      weightBuckets,
+      ageCategoryDistribution,
+      healthConditionFrequency,
+      topBreeds,
+      weightStats,
     };
 
     return res.status(200).json(stats);
