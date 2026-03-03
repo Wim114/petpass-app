@@ -35,9 +35,6 @@ export default function SettingsPage() {
   const { updatePassword, signOut, profile, user, updateProfile, isLoading } =
     useAuthStore();
 
-  const [gdprConsent, setGdprConsent] = useState(
-    !!profile?.gdpr_consent_at
-  );
   const [marketingConsent, setMarketingConsent] = useState(
     profile?.marketing_consent ?? false
   );
@@ -64,26 +61,16 @@ export default function SettingsPage() {
     setLang(newLang as 'de' | 'en');
   };
 
-  const handleConsentChange = async (
-    field: 'gdpr_consent_at' | 'marketing_consent',
-    value: boolean
-  ) => {
-    if (field === 'gdpr_consent_at') setGdprConsent(value);
-    if (field === 'marketing_consent') setMarketingConsent(value);
-
+  const handleMarketingConsentChange = async (value: boolean) => {
+    setMarketingConsent(value);
     setConsentSaving(true);
     try {
-      const updateValue = field === 'gdpr_consent_at'
-        ? { gdpr_consent_at: value ? new Date().toISOString() : null }
-        : { marketing_consent: value };
       await supabase
         .from('profiles')
-        .update(updateValue)
+        .update({ marketing_consent: value })
         .eq('id', user!.id);
     } catch {
-      // Revert on error
-      if (field === 'gdpr_consent_at') setGdprConsent(!value);
-      if (field === 'marketing_consent') setMarketingConsent(!value);
+      setMarketingConsent(!value);
     } finally {
       setConsentSaving(false);
     }
@@ -171,30 +158,8 @@ export default function SettingsPage() {
           <label className="flex items-start gap-3 cursor-pointer">
             <input
               type="checkbox"
-              checked={gdprConsent}
-              onChange={(e) =>
-                handleConsentChange('gdpr_consent_at', e.target.checked)
-              }
-              disabled={consentSaving}
-              className="mt-0.5 w-5 h-5 text-emerald-600 border-slate-300 rounded focus:ring-emerald-500"
-            />
-            <div>
-              <p className="text-sm font-medium text-slate-800">
-                {t.settings?.gdprConsent ?? 'GDPR Data Processing Consent'}
-              </p>
-              <p className="text-xs text-slate-500 mt-0.5">
-                {t.settings?.gdprConsentDesc ??
-                  'I consent to the processing of my personal data in accordance with GDPR regulations.'}
-              </p>
-            </div>
-          </label>
-          <label className="flex items-start gap-3 cursor-pointer">
-            <input
-              type="checkbox"
               checked={marketingConsent}
-              onChange={(e) =>
-                handleConsentChange('marketing_consent', e.target.checked)
-              }
+              onChange={(e) => handleMarketingConsentChange(e.target.checked)}
               disabled={consentSaving}
               className="mt-0.5 w-5 h-5 text-emerald-600 border-slate-300 rounded focus:ring-emerald-500"
             />
