@@ -1,6 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/lib/supabase';
-import type { PlanConfig, PlanConfigItem, PlanType } from '@/types';
+import type { PlanConfig, PlanConfigItem } from '@/types';
 
 const DEFAULT_PLANS: PlanConfigItem[] = [
   {
@@ -67,17 +66,17 @@ const DEFAULT_PLANS: PlanConfigItem[] = [
 ];
 
 async function fetchPlanConfig(): Promise<PlanConfig> {
-  const { data, error } = await supabase
-    .from('site_config')
-    .select('value')
-    .eq('key', 'plan_config')
-    .single();
-
-  if (error || !data?.value?.plans) {
+  try {
+    const res = await fetch('/api/plan-config');
+    if (!res.ok) throw new Error('Failed to fetch');
+    const data = await res.json();
+    if (data?.plans && Array.isArray(data.plans)) {
+      return data as PlanConfig;
+    }
+    return { plans: DEFAULT_PLANS };
+  } catch {
     return { plans: DEFAULT_PLANS };
   }
-
-  return data.value as PlanConfig;
 }
 
 export function usePlanConfig() {

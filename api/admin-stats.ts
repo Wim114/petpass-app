@@ -325,6 +325,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(200).json(stats);
   } catch (err) {
     console.error('Error computing admin stats:', err);
-    return res.status(500).json({ error: (err as Error).message });
+    return res.status(500).json({ error: 'Internal server error' });
   }
 }

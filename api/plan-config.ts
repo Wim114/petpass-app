@@ -71,83 +71,107 @@ const DEFAULT_PLAN_CONFIG = {
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (handleCors(req, res)) return;
 
-  // GET — public read
-  if (req.method === 'GET') {
-    const { data, error } = await supabaseAdmin
-      .from('site_config')
-      .select('value')
-      .eq('key', 'plan_config')
-      .single();
+  try {
+    // GET — public read
+    if (req.method === 'GET') {
+      try {
+        const { data, error } = await supabaseAdmin
+          .from('site_config')
+          .select('value')
+          .eq('key', 'plan_config')
+          .single();
 
-    if (error || !data?.value) {
-      // Table or row may not exist yet — return defaults
-      return res.status(200).json(DEFAULT_PLAN_CONFIG);
-    }
-    return res.status(200).json(data.value);
-  }
-
-  // PUT — admin-only write
-  if (req.method === 'PUT') {
-    const user = await verifyUser(req.headers.authorization);
-    if (!user) {
-      return res.status(401).json({ error: 'Unauthorized' });
-    }
-
-    const { data: profile } = await supabaseAdmin
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single();
-
-    if (!profile || profile.role !== 'admin') {
-      return res.status(403).json({ error: 'Forbidden: admin role required' });
-    }
-
-    const { plans } = req.body;
-
-    if (!Array.isArray(plans) || plans.length === 0) {
-      return res.status(400).json({ error: 'Invalid plan config: plans array required' });
-    }
-
-    for (const plan of plans) {
-      if (!plan.key || typeof plan.price !== 'number' || plan.price < 0) {
-        return res.status(400).json({ error: `Invalid plan: ${plan.key}` });
-      }
-      if (!Array.isArray(plan.features_en) || !Array.isArray(plan.features_de)) {
-        return res.status(400).json({ error: `Missing features for plan: ${plan.key}` });
+        if (error || !data?.value) {
+          return res.status(200).json(DEFAULT_PLAN_CONFIG);
+        }
+        return res.status(200).json(data.value);
+      } catch {
+        // Table may not exist — return defaults
+        return res.status(200).json(DEFAULT_PLAN_CONFIG);
       }
     }
 
-    const { error } = await supabaseAdmin
-      .from('site_config')
-      .upsert({
-        key: 'plan_config',
-        value: { plans },
-        updated_by: user.id,
-        updated_at: new Date().toISOString(),
-      });
+    // PUT — admin-only write
+    if (req.method === 'PUT') {
+      const user = await verifyUser(req.headers.authorization);
+      if (!user) {
+        return res.status(401).json({ error: 'Unauthorized' });
+      }
 
-    if (error) {
-      // If the site_config table doesn't exist, provide a clear message
-      if (error.code === 'PGRST204' || error.message?.includes('site_config')) {
-        return res.status(500).json({
-          error: 'The site_config table does not exist. Please run the database migration (004_fix_site_config_and_pet_types.sql) in the Supabase SQL Editor.',
+      const { data: profile } = await supabaseAdmin
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .single();
+
+      if (!profile || profile.role !== 'admin') {
+        return res.status(403).json({ error: 'Forbidden: admin role required' });
+      }
+
+      const { plans } = req.body ?? {};
+
+      if (!Array.isArray(plans) || plans.length === 0) {
+        return res.status(400).json({ error: 'Invalid plan config: plans array required' });
+      }
+
+      // Validate plan keys against allowed values
+      const ALLOWED_PLAN_KEYS = new Set(['basic', 'care_plus', 'vip']);
+      for (const plan of plans) {
+        if (!plan.key || !ALLOWED_PLAN_KEYS.has(plan.key)) {
+          return res.status(400).json({ error: `Invalid plan key: ${String(plan.key ?? 'undefined')}` });
+        }
+        if (typeof plan.price !== 'number' || plan.price < 0 || plan.price > 10000) {
+          return res.status(400).json({ error: `Invalid price for plan: ${plan.key}` });
+        }
+        if (!Array.isArray(plan.features_en) || !Array.isArray(plan.features_de)) {
+          return res.status(400).json({ error: `Missing features for plan: ${plan.key}` });
+        }
+        // Sanitise feature strings (strip HTML tags to prevent stored XSS)
+        plan.features_en = plan.features_en.map((f: unknown) =>
+          typeof f === 'string' ? f.replace(/<[^>]*>/g, '').slice(0, 500) : ''
+        );
+        plan.features_de = plan.features_de.map((f: unknown) =>
+          typeof f === 'string' ? f.replace(/<[^>]*>/g, '').slice(0, 500) : ''
+        );
+      }
+
+      const { error } = await supabaseAdmin
+        .from('site_config')
+        .upsert({
+          key: 'plan_config',
+          value: { plans },
+          updated_by: user.id,
+          updated_at: new Date().toISOString(),
         });
+
+      if (error) {
+        if (error.code === 'PGRST204' || error.message?.includes('site_config')) {
+          return res.status(500).json({
+            error: 'The site_config table does not exist. Please run the database migration.',
+          });
+        }
+        return res.status(500).json({ error: 'Failed to save plan configuration' });
       }
-      return res.status(500).json({ error: error.message });
+
+      // Log the admin action
+      try {
+        await supabaseAdmin.from('admin_logs').insert({
+          admin_id: user.id,
+          action: 'update_plan_config',
+          target_type: 'site_config',
+          target_id: 'plan_config',
+          metadata: { plans_count: plans.length },
+        });
+      } catch {
+        // Non-critical — don't fail the request if audit logging fails
+      }
+
+      return res.status(200).json({ success: true, plans });
     }
 
-    // Log the admin action
-    await supabaseAdmin.from('admin_logs').insert({
-      admin_id: user.id,
-      action: 'update_plan_config',
-      target_type: 'site_config',
-      target_id: 'plan_config',
-      metadata: { plans_count: plans.length },
-    });
-
-    return res.status(200).json({ success: true, plans });
+    return res.status(405).json({ error: 'Method not allowed' });
+  } catch (err) {
+    console.error('Error in plan-config handler:', err);
+    return res.status(500).json({ error: 'Internal server error' });
   }
-
-  return res.status(405).json({ error: 'Method not allowed' });
 }
