@@ -135,13 +135,13 @@ export default function UserManagement() {
           <table className="w-full text-left text-sm">
             <thead>
               <tr className="border-b border-slate-100 bg-slate-50">
-                <th className="px-5 py-3 font-medium text-slate-500">Name</th>
-                <th className="px-5 py-3 font-medium text-slate-500">Email</th>
-                <th className="px-5 py-3 font-medium text-slate-500">Role</th>
-                <th className="px-5 py-3 font-medium text-slate-500">Plan</th>
-                <th className="px-5 py-3 font-medium text-slate-500">District</th>
-                <th className="px-5 py-3 font-medium text-slate-500">Joined</th>
-                <th className="px-5 py-3 font-medium text-slate-500">Actions</th>
+                <th className="px-3 sm:px-5 py-3 font-medium text-slate-500 text-xs sm:text-sm">Name</th>
+                <th className="px-3 sm:px-5 py-3 font-medium text-slate-500 text-xs sm:text-sm">Email</th>
+                <th className="px-3 sm:px-5 py-3 font-medium text-slate-500 text-xs sm:text-sm">Role</th>
+                <th className="px-3 sm:px-5 py-3 font-medium text-slate-500 text-xs sm:text-sm hidden sm:table-cell">Plan</th>
+                <th className="px-3 sm:px-5 py-3 font-medium text-slate-500 text-xs sm:text-sm hidden md:table-cell">District</th>
+                <th className="px-3 sm:px-5 py-3 font-medium text-slate-500 text-xs sm:text-sm hidden md:table-cell">Joined</th>
+                <th className="px-3 sm:px-5 py-3 font-medium text-slate-500 text-xs sm:text-sm">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -165,11 +165,11 @@ export default function UserManagement() {
                   const plan = getActivePlan(user);
                   return (
                     <tr key={user.id} className="border-b border-slate-100 last:border-0 hover:bg-slate-50">
-                      <td className="px-5 py-3 font-medium text-slate-900">
+                      <td className="px-3 sm:px-5 py-3 font-medium text-slate-900 text-xs sm:text-sm">
                         {getDisplayName(user)}
                       </td>
-                      <td className="px-5 py-3 text-slate-600">{user.email}</td>
-                      <td className="px-5 py-3">
+                      <td className="px-3 sm:px-5 py-3 text-slate-600 text-xs sm:text-sm max-w-[150px] truncate">{user.email}</td>
+                      <td className="px-3 sm:px-5 py-3">
                         <span
                           className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${
                             user.role === 'admin'
@@ -182,18 +182,18 @@ export default function UserManagement() {
                           {user.role || 'member'}
                         </span>
                       </td>
-                      <td className="px-5 py-3">
+                      <td className="px-3 sm:px-5 py-3 hidden sm:table-cell">
                         <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${PLAN_STYLES[plan] || PLAN_STYLES.free}`}>
                           {PLAN_LABELS[plan] || plan}
                         </span>
                       </td>
-                      <td className="px-5 py-3 text-slate-600">{user.district || '-'}</td>
-                      <td className="px-5 py-3 text-slate-500">
+                      <td className="px-3 sm:px-5 py-3 text-slate-600 text-xs sm:text-sm hidden md:table-cell">{user.district || '-'}</td>
+                      <td className="px-3 sm:px-5 py-3 text-slate-500 text-xs sm:text-sm hidden md:table-cell">
                         {user.created_at
                           ? format(new Date(user.created_at), 'dd MMM yyyy')
                           : '-'}
                       </td>
-                      <td className="relative px-5 py-3">
+                      <td className="relative px-3 sm:px-5 py-3">
                         <button
                           onClick={() =>
                             setOpenDropdown(openDropdown === user.id ? null : user.id)

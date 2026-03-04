@@ -157,7 +157,7 @@ export default function DashboardLayout() {
 
       {/* Mobile Sidebar */}
       <aside
-        className={`fixed inset-y-0 left-0 z-50 w-64 transform bg-white shadow-xl transition-transform duration-300 lg:hidden ${
+        className={`fixed inset-y-0 left-0 z-50 w-[80vw] max-w-64 transform bg-white shadow-xl transition-transform duration-300 lg:hidden ${
           mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
@@ -274,7 +274,7 @@ export default function DashboardLayout() {
               to={item.to}
               end={item.end}
               className={({ isActive }) =>
-                `flex flex-col items-center gap-0.5 px-2 py-1 text-[10px] font-medium transition-colors ${
+                `flex flex-col items-center gap-0.5 px-2 py-1.5 text-[11px] font-medium transition-colors ${
                   isActive ? 'text-emerald-600' : 'text-slate-400'
                 }`
               }
@@ -287,7 +287,7 @@ export default function DashboardLayout() {
             <NavLink
               to="/admin"
               className={({ isActive }) =>
-                `flex flex-col items-center gap-0.5 px-2 py-1 text-[10px] font-medium transition-colors ${
+                `flex flex-col items-center gap-0.5 px-2 py-1.5 text-[11px] font-medium transition-colors ${
                   isActive ? 'text-amber-600' : 'text-amber-500'
                 }`
               }
