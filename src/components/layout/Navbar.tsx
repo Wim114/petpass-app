@@ -39,11 +39,11 @@ const Navbar: React.FC = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
-    <nav className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-slate-200 py-4">
+    <nav className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-slate-200 py-3 sm:py-4">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex justify-between items-center">
-        <div className="flex items-center gap-2">
-          <img src="/logo.png" alt="Pet Pass Vienna" className="w-10 h-10 rounded-lg" />
-          <span className="text-xl font-extrabold tracking-tight text-slate-900">Pet Pass <span className="text-emerald-600">Vienna</span></span>
+        <div className="flex items-center gap-2 min-w-0">
+          <img src="/logo.png" alt="Pet Pass Vienna" className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg shrink-0" />
+          <span className="text-base sm:text-xl font-extrabold tracking-tight text-slate-900 truncate">Pet Pass <span className="text-emerald-600">Vienna</span></span>
         </div>
         <div className="hidden md:flex items-center gap-8 font-medium text-slate-600">
           <a href="#how-it-works" className="hover:text-emerald-600 transition-colors">{t.nav.howItWorks}</a>
@@ -51,8 +51,10 @@ const Navbar: React.FC = () => {
           <a href="#partners" className="hover:text-emerald-600 transition-colors">{t.nav.partners}</a>
           <a href="#faq" className="hover:text-emerald-600 transition-colors">{t.nav.faq}</a>
         </div>
-        <div className="flex items-center gap-3 sm:gap-4">
-          <LanguageSwitcher />
+        <div className="flex items-center gap-2 sm:gap-4">
+          <div className="hidden sm:block">
+            <LanguageSwitcher />
+          </div>
           {user ? (
             <Link
               to="/dashboard"
@@ -79,15 +81,18 @@ const Navbar: React.FC = () => {
       </div>
       {mobileMenuOpen && (
         <div className="md:hidden border-t border-slate-200 bg-white/95 backdrop-blur-md">
-          <div className="max-w-7xl mx-auto px-4 py-4 flex flex-col gap-3">
+          <div className="max-w-7xl mx-auto px-4 py-4 flex flex-col gap-2">
             <a href="#how-it-works" onClick={() => setMobileMenuOpen(false)} className="px-4 py-3 rounded-xl text-slate-700 font-medium hover:bg-emerald-50 hover:text-emerald-600 transition-colors">{t.nav.howItWorks}</a>
             <a href="#plans" onClick={() => setMobileMenuOpen(false)} className="px-4 py-3 rounded-xl text-slate-700 font-medium hover:bg-emerald-50 hover:text-emerald-600 transition-colors">{t.nav.plans}</a>
             <a href="#partners" onClick={() => setMobileMenuOpen(false)} className="px-4 py-3 rounded-xl text-slate-700 font-medium hover:bg-emerald-50 hover:text-emerald-600 transition-colors">{t.nav.partners}</a>
             <a href="#faq" onClick={() => setMobileMenuOpen(false)} className="px-4 py-3 rounded-xl text-slate-700 font-medium hover:bg-emerald-50 hover:text-emerald-600 transition-colors">{t.nav.faq}</a>
+            <div className="sm:hidden px-4 py-2">
+              <LanguageSwitcher />
+            </div>
             {user ? (
-              <Link to="/dashboard" onClick={() => setMobileMenuOpen(false)} className="sm:hidden mt-2 bg-slate-900 text-white px-5 py-3 rounded-xl font-semibold text-center hover:bg-slate-800 transition-all">Dashboard</Link>
+              <Link to="/dashboard" onClick={() => setMobileMenuOpen(false)} className="mt-2 bg-slate-900 text-white px-5 py-3 rounded-xl font-semibold text-center hover:bg-slate-800 transition-all">Dashboard</Link>
             ) : (
-              <Link to="/login" onClick={() => setMobileMenuOpen(false)} className="sm:hidden mt-2 bg-slate-900 text-white px-5 py-3 rounded-xl font-semibold text-center hover:bg-slate-800 transition-all">{t.nav.joinClub}</Link>
+              <Link to="/login" onClick={() => setMobileMenuOpen(false)} className="mt-2 bg-slate-900 text-white px-5 py-3 rounded-xl font-semibold text-center hover:bg-slate-800 transition-all">{t.nav.joinClub}</Link>
             )}
           </div>
         </div>

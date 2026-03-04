@@ -70,7 +70,7 @@ export default function LoginForm() {
               className="mx-auto h-12 w-auto"
             />
           </Link>
-          <h1 className="mt-6 text-3xl font-bold text-slate-900 font-['Plus_Jakarta_Sans']">
+          <h1 className="mt-6 text-2xl sm:text-3xl font-bold text-slate-900 font-['Plus_Jakarta_Sans']">
             Welcome back
           </h1>
           <p className="mt-2 text-sm text-slate-500">
@@ -78,7 +78,7 @@ export default function LoginForm() {
           </p>
         </div>
 
-        <div className="rounded-2xl bg-white p-8 shadow-sm ring-1 ring-slate-200">
+        <div className="rounded-2xl bg-white p-5 sm:p-8 shadow-sm ring-1 ring-slate-200">
           {error && (
             <div className="mb-6 flex items-start gap-3 rounded-xl bg-red-50 p-4 text-sm text-red-700">
               <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />

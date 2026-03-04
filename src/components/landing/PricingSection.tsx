@@ -41,42 +41,42 @@ const PricingSection: React.FC<PricingSectionProps> = ({ onOpenModal }) => {
   }));
 
   return (
-    <section id="plans" className="py-24 bg-slate-50">
+    <section id="plans" className="py-12 sm:py-24 bg-slate-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-16 space-y-4">
+        <div className="text-center mb-8 sm:mb-16 space-y-3 sm:space-y-4">
           <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-black text-slate-900 leading-tight">{t.pricing.title1} <br/><span className="text-emerald-600">{t.pricing.title2}</span></h2>
-          <p className="text-slate-500 text-lg">{t.pricing.subtitle}</p>
+          <p className="text-slate-500 text-base sm:text-lg">{t.pricing.subtitle}</p>
         </div>
-        <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-6 sm:gap-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-8">
           {plans.map((plan, idx) => (
             <div
               key={idx}
-              className={`relative flex flex-col bg-white rounded-[2rem] p-8 border-2 ${plan.isPopular ? 'border-emerald-500 ring-4 ring-emerald-50' : 'border-white'} shadow-xl transition-transform hover:-translate-y-2 duration-300 animate-fade-up ${idx === 1 ? 'animate-delay-100' : idx === 2 ? 'animate-delay-200' : ''}`}
+              className={`relative flex flex-col bg-white rounded-2xl sm:rounded-[2rem] p-5 sm:p-8 border-2 ${plan.isPopular ? 'border-emerald-500 ring-4 ring-emerald-50' : 'border-white'} shadow-xl transition-transform hover:-translate-y-2 duration-300 animate-fade-up ${idx === 1 ? 'animate-delay-100' : idx === 2 ? 'animate-delay-200' : ''}`}
             >
               {plan.isPopular && (
-                <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-emerald-500 text-white px-4 py-1 rounded-full text-sm font-bold shadow-lg">
+                <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-emerald-500 text-white px-3 sm:px-4 py-1 rounded-full text-xs sm:text-sm font-bold shadow-lg">
                   {t.pricing.mostPopular}
                 </div>
               )}
-              <div className="mb-8">
-                <h3 className="text-2xl font-bold text-slate-900 mb-2">{plan.name}</h3>
-                <p className="text-slate-500 text-sm h-10">{plan.description}</p>
+              <div className="mb-5 sm:mb-8">
+                <h3 className="text-xl sm:text-2xl font-bold text-slate-900 mb-1 sm:mb-2">{plan.name}</h3>
+                <p className="text-slate-500 text-sm">{plan.description}</p>
               </div>
-              <div className="mb-8">
-                <span className="text-5xl font-black text-slate-900">€{plan.price}</span>
+              <div className="mb-5 sm:mb-8">
+                <span className="text-4xl sm:text-5xl font-black text-slate-900">€{plan.price}</span>
                 <span className="text-slate-500 font-medium">{t.pricing.perMonth}</span>
               </div>
-              <ul className="space-y-4 mb-12 flex-grow">
+              <ul className="space-y-3 sm:space-y-4 mb-6 sm:mb-12 flex-grow">
                 {plan.features.map((feature, fIdx) => (
-                  <li key={fIdx} className="flex items-start gap-3 text-slate-600 font-medium">
-                    <CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0 mt-0.5" />
+                  <li key={fIdx} className="flex items-start gap-2 sm:gap-3 text-slate-600 font-medium text-sm sm:text-base">
+                    <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-500 shrink-0 mt-0.5" />
                     {feature}
                   </li>
                 ))}
               </ul>
               <button
                 onClick={onOpenModal}
-                className={`w-full py-4 rounded-2xl font-bold text-lg transition-all ${
+                className={`w-full py-3.5 sm:py-4 rounded-xl sm:rounded-2xl font-bold text-base sm:text-lg transition-all ${
                   plan.isPopular
                     ? 'bg-emerald-600 text-white hover:bg-emerald-700 shadow-lg shadow-emerald-200'
                     : 'bg-slate-100 text-slate-900 hover:bg-slate-200'

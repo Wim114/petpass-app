@@ -44,10 +44,10 @@ export default function Modal({
     <div
       ref={overlayRef}
       onClick={handleOverlayClick}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200"
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm p-0 sm:p-4 animate-in fade-in duration-200"
     >
       <div
-        className={`${maxWidth} w-full rounded-2xl bg-white shadow-xl animate-in zoom-in-95 slide-in-from-bottom-4 duration-300`}
+        className={`${maxWidth} w-full rounded-t-2xl sm:rounded-2xl bg-white shadow-xl animate-in zoom-in-95 slide-in-from-bottom-4 duration-300 max-h-[90vh] sm:max-h-[85vh] overflow-y-auto`}
       >
         {title && (
           <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
