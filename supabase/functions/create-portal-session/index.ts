@@ -7,8 +7,10 @@ const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY")!, {
 
 const siteUrl = Deno.env.get("SITE_URL") ?? "https://petpass.app";
 
+const ALLOWED_ORIGIN = Deno.env.get("SITE_URL") ?? "https://petpass.app";
+
 const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Origin": ALLOWED_ORIGIN,
   "Access-Control-Allow-Methods": "POST, OPTIONS",
   "Access-Control-Allow-Headers": "Content-Type, Authorization, x-client-info, apikey",
 };
@@ -49,7 +51,7 @@ Deno.serve(async (req: Request) => {
   } catch (err) {
     console.error("Error creating portal session:", err);
     return new Response(
-      JSON.stringify({ error: (err as Error).message }),
+      JSON.stringify({ error: "Failed to create portal session" }),
       {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },

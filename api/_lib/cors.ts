@@ -8,8 +8,11 @@ const allowedOrigins = [
 
 function getOrigin(req: VercelRequest): string {
   const origin = req.headers.origin ?? '';
-  // Allow Vercel preview deployments
-  if (allowedOrigins.includes(origin) || origin.endsWith('.vercel.app')) {
+  if (allowedOrigins.includes(origin)) {
+    return origin;
+  }
+  // Allow Vercel preview deployments for this project only
+  if (/^https:\/\/petpass-app[a-z0-9-]*\.vercel\.app$/.test(origin)) {
     return origin;
   }
   return allowedOrigins[0];
