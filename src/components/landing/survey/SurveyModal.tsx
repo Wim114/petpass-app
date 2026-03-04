@@ -153,12 +153,16 @@ const SurveyModal: React.FC<SurveyModalProps> = ({ isOpen, onClose }) => {
   );
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-4">
       <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={handleClose} />
-      <div className="relative bg-white rounded-3xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
-        <button onClick={handleClose} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 z-10">
-          <X className="w-6 h-6" />
+      <div className="relative bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl max-w-lg w-full max-h-[92vh] sm:max-h-[90vh] overflow-y-auto overscroll-contain">
+        <button onClick={handleClose} className="absolute top-3 right-3 sm:top-4 sm:right-4 text-slate-400 hover:text-slate-600 z-10 p-1">
+          <X className="w-5 h-5 sm:w-6 sm:h-6" />
         </button>
+        {/* Mobile drag handle */}
+        <div className="sm:hidden flex justify-center pt-3 pb-0">
+          <div className="w-10 h-1 bg-slate-300 rounded-full" />
+        </div>
 
         {!submitted && flowType === 'survey' && (
           <div className="px-4 sm:px-8 pt-6 sm:pt-8">
@@ -179,7 +183,7 @@ const SurveyModal: React.FC<SurveyModalProps> = ({ isOpen, onClose }) => {
                 <div className="inline-flex items-center justify-center w-16 h-16 bg-emerald-100 rounded-full text-emerald-600 mb-4">
                   <Star className="w-8 h-8 fill-current" />
                 </div>
-                <h3 className="text-2xl font-bold text-slate-900">{t.survey.quickJoinTitle}</h3>
+                <h3 className="text-xl sm:text-2xl font-bold text-slate-900">{t.survey.quickJoinTitle}</h3>
                 <p className="text-slate-500 mt-2">{t.survey.quickJoinSubtitle}</p>
               </div>
               <form onSubmit={handleSubmit} className="space-y-4">
@@ -370,7 +374,7 @@ const SurveyModal: React.FC<SurveyModalProps> = ({ isOpen, onClose }) => {
                 <div className="flex items-end justify-between">
                   <div>
                     <p className="text-emerald-100 text-sm">{t.survey.couldSave}</p>
-                    <p className="text-4xl font-black">€{costBreakdown.annualSavings}</p>
+                    <p className="text-3xl sm:text-4xl font-black">€{costBreakdown.annualSavings}</p>
                     <p className="text-emerald-100 text-sm">{t.survey.perYear} ({costBreakdown.savingsPercentage}% {t.survey.savings})</p>
                   </div>
                   <div className="text-right">

@@ -56,10 +56,10 @@ export default function DashboardHome() {
   const firstName = profile?.first_name || user?.email?.split('@')[0] || '';
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6 sm:space-y-8">
       {/* Welcome */}
       <div>
-        <h1 className="text-3xl font-bold text-slate-800">
+        <h1 className="text-2xl sm:text-3xl font-bold text-slate-800">
           {(t.dashboard?.welcome ?? 'Welcome back, {name}!').replace('{name}', firstName)}
         </h1>
         <p className="text-slate-500 mt-1">
@@ -69,7 +69,7 @@ export default function DashboardHome() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6">
         {/* Subscription Status */}
         <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
           <div className="flex items-center justify-between mb-4">
@@ -237,8 +237,8 @@ export default function DashboardHome() {
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-3">
-            <code className="flex-1 bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 text-sm font-mono text-slate-800">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3">
+            <code className="flex-1 bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 text-sm font-mono text-slate-800 truncate">
               {profile.referral_code}
             </code>
             <button
@@ -247,7 +247,7 @@ export default function DashboardHome() {
                 setCopied(true);
                 setTimeout(() => setCopied(false), 2000);
               }}
-              className="flex items-center gap-1.5 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-lg transition"
+              className="flex items-center justify-center gap-1.5 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-lg transition shrink-0"
             >
               {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
               {copied ? (t.common?.copied ?? 'Copied!') : (t.common?.copyToClipboard ?? 'Copy')}

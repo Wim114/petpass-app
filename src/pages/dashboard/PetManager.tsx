@@ -230,18 +230,18 @@ export default function PetManager() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-slate-800">
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-800">
             {t.pets?.title ?? 'My Pets'}
           </h1>
-          <p className="text-slate-500 mt-1">
+          <p className="text-slate-500 mt-1 text-sm">
             {t.pets?.subtitle ?? 'Manage your registered pets'}
           </p>
         </div>
         <button
           onClick={openAddModal}
-          className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2.5 px-4 rounded-lg transition"
+          className="flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2.5 px-4 rounded-lg transition w-full sm:w-auto"
         >
           <Plus className="w-5 h-5" />
           {t.pets?.addPet ?? 'Add Pet'}
@@ -269,7 +269,7 @@ export default function PetManager() {
           </button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {pets.map((pet) => (
             <div
               key={pet.id}
@@ -367,12 +367,12 @@ export default function PetManager() {
 
       {/* Add/Edit Modal */}
       {modalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
           <div
             className="fixed inset-0 bg-black/50"
             onClick={closeModal}
           />
-          <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto p-6">
+          <div className="relative bg-white rounded-t-2xl sm:rounded-2xl shadow-xl w-full max-w-lg max-h-[92vh] sm:max-h-[90vh] overflow-y-auto overscroll-contain p-4 sm:p-6">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-xl font-bold text-slate-800">
                 {editingPet

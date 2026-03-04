@@ -104,9 +104,9 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="max-w-2xl mx-auto space-y-8">
+    <div className="max-w-2xl mx-auto space-y-6 sm:space-y-8">
       <div>
-        <h1 className="text-2xl font-bold text-slate-800">
+        <h1 className="text-xl sm:text-2xl font-bold text-slate-800">
           {t.settings?.title ?? 'Settings'}
         </h1>
         <p className="text-slate-500 mt-1">
@@ -115,7 +115,7 @@ export default function SettingsPage() {
       </div>
 
       {/* Language */}
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+      <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 sm:p-6">
         <div className="flex items-center gap-3 mb-4">
           <Globe className="w-5 h-5 text-slate-600" />
           <h2 className="text-lg font-semibold text-slate-800">
@@ -147,7 +147,7 @@ export default function SettingsPage() {
       </div>
 
       {/* Privacy & Consent */}
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+      <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 sm:p-6">
         <div className="flex items-center gap-3 mb-4">
           <Shield className="w-5 h-5 text-slate-600" />
           <h2 className="text-lg font-semibold text-slate-800">
@@ -177,7 +177,7 @@ export default function SettingsPage() {
       </div>
 
       {/* Change Password */}
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+      <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 sm:p-6">
         <div className="flex items-center gap-3 mb-4">
           <Lock className="w-5 h-5 text-slate-600" />
           <h2 className="text-lg font-semibold text-slate-800">

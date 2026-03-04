@@ -100,7 +100,7 @@ export default function UserManagement() {
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-slate-900">User Management</h2>
+          <h2 className="text-xl sm:text-2xl font-bold text-slate-900">User Management</h2>
           <p className="mt-1 text-sm text-slate-500">
             {users.length} total users
           </p>
@@ -241,8 +241,8 @@ export default function UserManagement() {
 
         {/* Pagination */}
         {totalPages > 1 && (
-          <div className="flex items-center justify-between border-t border-slate-200 px-5 py-3">
-            <p className="text-sm text-slate-500">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-2 border-t border-slate-200 px-4 sm:px-5 py-3">
+            <p className="text-xs sm:text-sm text-slate-500">
               Showing {(page - 1) * PAGE_SIZE + 1} to{' '}
               {Math.min(page * PAGE_SIZE, filtered.length)} of {filtered.length} users
             </p>

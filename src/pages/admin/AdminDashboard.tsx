@@ -117,17 +117,17 @@ interface KpiCardProps {
 
 function KpiCard({ title, value, icon: Icon, trend, subtitle }: KpiCardProps) {
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+    <div className="rounded-xl border border-slate-200 bg-white p-3 sm:p-5 shadow-sm">
       <div className="flex items-center justify-between">
-        <div className="rounded-lg bg-emerald-50 p-2.5">
-          <Icon className="h-5 w-5 text-emerald-600" />
+        <div className="rounded-lg bg-emerald-50 p-2 sm:p-2.5">
+          <Icon className="h-4 w-4 sm:h-5 sm:w-5 text-emerald-600" />
         </div>
-        {trend === 'up' && <TrendingUp className="h-4 w-4 text-emerald-500" />}
-        {trend === 'down' && <TrendingDown className="h-4 w-4 text-red-500" />}
+        {trend === 'up' && <TrendingUp className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-emerald-500" />}
+        {trend === 'down' && <TrendingDown className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-red-500" />}
       </div>
-      <p className="mt-3 text-2xl font-bold text-slate-900">{value}</p>
-      <p className="text-sm text-slate-500">{title}</p>
-      {subtitle && <p className="mt-1 text-xs text-slate-400">{subtitle}</p>}
+      <p className="mt-2 sm:mt-3 text-lg sm:text-2xl font-bold text-slate-900">{value}</p>
+      <p className="text-xs sm:text-sm text-slate-500 truncate">{title}</p>
+      {subtitle && <p className="mt-0.5 sm:mt-1 text-[10px] sm:text-xs text-slate-400 truncate">{subtitle}</p>}
     </div>
   );
 }
@@ -251,9 +251,9 @@ export default function AdminDashboard() {
       </div>
 
       {/* Charts Row: Revenue + Plan Distribution */}
-      <div className="grid gap-6 lg:grid-cols-3">
-        <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm lg:col-span-2">
-          <h2 className="mb-4 text-lg font-semibold text-slate-900">Revenue Over Time</h2>
+      <div className="grid gap-4 sm:gap-6 lg:grid-cols-3">
+        <div className="rounded-xl border border-slate-200 bg-white p-3 sm:p-5 shadow-sm lg:col-span-2">
+          <h2 className="mb-3 sm:mb-4 text-base sm:text-lg font-semibold text-slate-900">Revenue Over Time</h2>
           <ResponsiveContainer width="100%" height={300}>
             <LineChart data={s.revenueByMonth}>
               <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
