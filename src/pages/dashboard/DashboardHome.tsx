@@ -44,8 +44,9 @@ export default function DashboardHome() {
     });
 
   const isLoading = petsLoading || subLoading;
+  const hasCachedData = pets.length > 0 || subscription !== undefined;
 
-  if (isLoading) {
+  if (isLoading && !hasCachedData) {
     return (
       <div className="flex items-center justify-center py-20">
         <Spinner size="lg" />

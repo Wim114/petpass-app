@@ -166,13 +166,13 @@ export default function AnalyticsPage() {
 
   return (
     <div className="space-y-6">
-      <h2 className="text-2xl font-bold text-slate-900">Analytics</h2>
+      <h2 className="text-xl sm:text-2xl font-bold text-slate-900">Analytics</h2>
 
       {/* Revenue Over Time - Full Width */}
-      <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-        <h3 className="mb-1 text-lg font-semibold text-slate-900">Revenue Over Time</h3>
-        <p className="mb-6 text-sm text-slate-500">Monthly recurring revenue and member count</p>
-        <ResponsiveContainer width="100%" height={400}>
+      <div className="rounded-xl border border-slate-200 bg-white p-4 sm:p-6 shadow-sm">
+        <h3 className="mb-1 text-base sm:text-lg font-semibold text-slate-900">Revenue Over Time</h3>
+        <p className="mb-4 sm:mb-6 text-sm text-slate-500">Monthly recurring revenue and member count</p>
+        <ResponsiveContainer width="100%" height={300}>
           <LineChart data={revenueByMonth}>
             <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
             <XAxis dataKey="month" stroke="#94a3b8" fontSize={12} tickLine={false} />
@@ -219,9 +219,9 @@ export default function AnalyticsPage() {
       {/* Plan Distribution & Member Growth */}
       <div className="grid gap-6 lg:grid-cols-2">
         {/* Plan Distribution */}
-        <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-          <h3 className="mb-1 text-lg font-semibold text-slate-900">Plan Distribution</h3>
-          <p className="mb-6 text-sm text-slate-500">Current members by subscription plan</p>
+        <div className="rounded-xl border border-slate-200 bg-white p-4 sm:p-6 shadow-sm">
+          <h3 className="mb-1 text-base sm:text-lg font-semibold text-slate-900">Plan Distribution</h3>
+          <p className="mb-4 sm:mb-6 text-sm text-slate-500">Current members by subscription plan</p>
           <ResponsiveContainer width="100%" height={320}>
             <PieChart>
               <Pie
@@ -264,9 +264,9 @@ export default function AnalyticsPage() {
         </div>
 
         {/* Members Growth */}
-        <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-          <h3 className="mb-1 text-lg font-semibold text-slate-900">Member Growth</h3>
-          <p className="mb-6 text-sm text-slate-500">New members vs churned per month</p>
+        <div className="rounded-xl border border-slate-200 bg-white p-4 sm:p-6 shadow-sm">
+          <h3 className="mb-1 text-base sm:text-lg font-semibold text-slate-900">Member Growth</h3>
+          <p className="mb-4 sm:mb-6 text-sm text-slate-500">New members vs churned per month</p>
           <ResponsiveContainer width="100%" height={320}>
             <BarChart data={memberGrowth}>
               <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
@@ -307,10 +307,10 @@ export default function AnalyticsPage() {
       </div>
 
       {/* Pet Analytics Section */}
-      <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-        <div className="mb-6 flex items-center gap-2">
+      <div className="rounded-xl border border-slate-200 bg-white p-4 sm:p-6 shadow-sm">
+        <div className="mb-4 sm:mb-6 flex items-center gap-2">
           <PawPrint className="h-5 w-5 text-emerald-600" />
-          <h3 className="text-lg font-semibold text-slate-900">Pet Analytics</h3>
+          <h3 className="text-base sm:text-lg font-semibold text-slate-900">Pet Analytics</h3>
         </div>
 
         {/* Pet Type + Age Category */}
@@ -381,7 +381,7 @@ export default function AnalyticsPage() {
           <div className="rounded-lg border border-slate-100 p-4">
             <h4 className="mb-3 text-sm font-semibold text-slate-700">Weight Distribution</h4>
             {stats.weightStats && (
-              <div className="mb-4 grid grid-cols-4 gap-2">
+              <div className="mb-4 grid grid-cols-2 sm:grid-cols-4 gap-2">
                 {[
                   { label: 'Min', value: `${stats.weightStats.min} kg` },
                   { label: 'Median', value: `${stats.weightStats.median} kg` },
@@ -428,7 +428,7 @@ export default function AnalyticsPage() {
                   const pct = ((count / total) * 100).toFixed(1);
                   return (
                     <div key={key} className="flex items-center gap-3">
-                      <span className="w-28 truncate text-xs text-slate-600">
+                      <span className="w-20 sm:w-28 truncate text-xs text-slate-600">
                         {HEALTH_CONDITION_LABELS[key] || key}
                       </span>
                       <div className="flex-1">

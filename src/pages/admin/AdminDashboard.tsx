@@ -139,7 +139,7 @@ export default function AdminDashboard() {
     staleTime: 1000 * 60 * 5,
   });
 
-  if (isLoading) {
+  if (isLoading && !stats) {
     return (
       <div className="flex items-center justify-center py-20">
         <div className="h-8 w-8 animate-spin rounded-full border-4 border-emerald-500 border-t-transparent" />
@@ -283,16 +283,16 @@ export default function AdminDashboard() {
           </ResponsiveContainer>
         </div>
 
-        <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-          <h2 className="mb-4 text-lg font-semibold text-slate-900">Plan Distribution</h2>
-          <ResponsiveContainer width="100%" height={300}>
+        <div className="rounded-xl border border-slate-200 bg-white p-3 sm:p-5 shadow-sm">
+          <h2 className="mb-3 sm:mb-4 text-base sm:text-lg font-semibold text-slate-900">Plan Distribution</h2>
+          <ResponsiveContainer width="100%" height={260}>
             <PieChart>
               <Pie
                 data={pieData}
                 cx="50%"
                 cy="50%"
-                innerRadius={60}
-                outerRadius={90}
+                innerRadius={50}
+                outerRadius={80}
                 paddingAngle={4}
                 dataKey="value"
                 label={({ name, percent }) =>
@@ -393,7 +393,7 @@ export default function AdminDashboard() {
                 <BarChart data={ageData} layout="vertical">
                   <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                   <XAxis type="number" stroke="#94a3b8" fontSize={12} />
-                  <YAxis dataKey="name" type="category" stroke="#94a3b8" fontSize={12} width={90} />
+                  <YAxis dataKey="name" type="category" stroke="#94a3b8" fontSize={11} width={70} />
                   <Tooltip contentStyle={tooltipStyle} />
                   <Bar dataKey="value" name="Pets" radius={[0, 4, 4, 0]}>
                     {ageData.map((entry, index) => (
@@ -439,7 +439,7 @@ export default function AdminDashboard() {
                 <BarChart data={healthData} layout="vertical">
                   <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                   <XAxis type="number" stroke="#94a3b8" fontSize={12} />
-                  <YAxis dataKey="name" type="category" stroke="#94a3b8" fontSize={11} width={110} />
+                  <YAxis dataKey="name" type="category" stroke="#94a3b8" fontSize={10} width={80} />
                   <Tooltip contentStyle={tooltipStyle} />
                   <Bar dataKey="value" name="Pets affected" radius={[0, 4, 4, 0]}>
                     {healthData.map((_, index) => (
@@ -472,17 +472,17 @@ export default function AdminDashboard() {
 
       {/* Recent Signups Table */}
       <div className="rounded-xl border border-slate-200 bg-white shadow-sm">
-        <div className="border-b border-slate-200 px-5 py-4">
-          <h2 className="text-lg font-semibold text-slate-900">Recent Signups</h2>
+        <div className="border-b border-slate-200 px-4 sm:px-5 py-3 sm:py-4">
+          <h2 className="text-base sm:text-lg font-semibold text-slate-900">Recent Signups</h2>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
             <thead>
               <tr className="border-b border-slate-100 bg-slate-50">
-                <th className="px-5 py-3 font-medium text-slate-500">Email</th>
-                <th className="px-5 py-3 font-medium text-slate-500">Plan</th>
-                <th className="px-5 py-3 font-medium text-slate-500">District</th>
-                <th className="px-5 py-3 font-medium text-slate-500">Joined</th>
+                <th className="px-3 sm:px-5 py-3 font-medium text-slate-500 text-xs sm:text-sm">Email</th>
+                <th className="px-3 sm:px-5 py-3 font-medium text-slate-500 text-xs sm:text-sm">Plan</th>
+                <th className="px-3 sm:px-5 py-3 font-medium text-slate-500 text-xs sm:text-sm hidden sm:table-cell">District</th>
+                <th className="px-3 sm:px-5 py-3 font-medium text-slate-500 text-xs sm:text-sm">Joined</th>
               </tr>
             </thead>
             <tbody>
@@ -495,14 +495,14 @@ export default function AdminDashboard() {
               ) : (
                 s.recentSignups.map((signup, idx) => (
                   <tr key={idx} className="border-b border-slate-100 last:border-0">
-                    <td className="px-5 py-3 text-slate-900">{signup.email}</td>
-                    <td className="px-5 py-3">
+                    <td className="px-3 sm:px-5 py-3 text-slate-900 text-xs sm:text-sm max-w-[150px] truncate">{signup.email}</td>
+                    <td className="px-3 sm:px-5 py-3">
                       <span className="rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-medium text-emerald-700">
                         {PLAN_LABELS[signup.plan] || signup.plan}
                       </span>
                     </td>
-                    <td className="px-5 py-3 text-slate-600">{signup.district || '-'}</td>
-                    <td className="px-5 py-3 text-slate-500">
+                    <td className="px-3 sm:px-5 py-3 text-slate-600 text-xs sm:text-sm hidden sm:table-cell">{signup.district || '-'}</td>
+                    <td className="px-3 sm:px-5 py-3 text-slate-500 text-xs sm:text-sm">
                       {signup.created_at
                         ? new Date(signup.created_at).toLocaleDateString('en-GB', {
                             day: '2-digit',
