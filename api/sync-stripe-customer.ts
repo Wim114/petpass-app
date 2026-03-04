@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { stripe } from './_lib/stripe';
-import { supabaseAdmin } from './_lib/supabase';
+import { supabaseAdmin, verifyUser } from './_lib/supabase';
 import { handleCors } from './_lib/cors';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -11,10 +11,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    const { userId, email, name } = req.body;
+    // Verify the caller's JWT
+    const user = await verifyUser(req.headers.authorization);
+    if (!user) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
 
-    if (!userId || !email) {
-      return res.status(400).json({ error: 'userId and email are required' });
+    const { email, name } = req.body;
+
+    // Users can only sync their own Stripe customer
+    const userId = user.id;
+
+    if (!email) {
+      return res.status(400).json({ error: 'email is required' });
     }
 
     // Check if the user already has a Stripe customer ID
@@ -60,6 +69,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     });
   } catch (err) {
     console.error('Error syncing Stripe customer:', err);
-    return res.status(500).json({ error: (err as Error).message });
+    return res.status(500).json({ error: 'Internal server error' });
   }
 }

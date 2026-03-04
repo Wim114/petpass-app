@@ -63,11 +63,29 @@ export default function ProfilePage() {
     const file = e.target.files?.[0];
     if (!file || !user) return;
 
+    // Validate file size (max 5 MB)
+    const MAX_SIZE = 5 * 1024 * 1024;
+    if (file.size > MAX_SIZE) {
+      setError('File size must be under 5 MB.');
+      return;
+    }
+
+    // Validate MIME type
+    const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+    if (!ALLOWED_TYPES.includes(file.type)) {
+      setError('Only JPEG, PNG, GIF, and WebP images are allowed.');
+      return;
+    }
+
     setAvatarUploading(true);
     setError(null);
 
     try {
-      const fileExt = file.name.split('.').pop();
+      const ALLOWED_EXTENSIONS = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
+      const fileExt = (file.name.split('.').pop() || '').toLowerCase();
+      if (!ALLOWED_EXTENSIONS.includes(fileExt)) {
+        throw new Error('Invalid file extension.');
+      }
       const filePath = `${user.id}/avatar.${fileExt}`;
 
       const { error: uploadError } = await supabase.storage
