@@ -93,7 +93,14 @@ export function calculateCosts(data: PetSurveyData): CostBreakdown {
 }
 
 export function generateReferralCode(): string {
-  return 'PPV-' + Math.random().toString(36).substring(2, 8).toUpperCase();
+  const array = new Uint8Array(6);
+  crypto.getRandomValues(array);
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  let code = 'PPV-';
+  for (const byte of array) {
+    code += chars[byte % chars.length];
+  }
+  return code;
 }
 
 export function formatCurrency(amount: number, currency = 'EUR'): string {

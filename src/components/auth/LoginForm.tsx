@@ -29,7 +29,8 @@ export default function LoginForm() {
   const [error, setError] = useState<string | null>(null);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
 
-  const redirectTo = searchParams.get('redirect') || '/dashboard';
+  const rawRedirect = searchParams.get('redirect') || '/dashboard';
+  const redirectTo = rawRedirect.startsWith('/') && !rawRedirect.startsWith('//') ? rawRedirect : '/dashboard';
 
   const {
     register,
