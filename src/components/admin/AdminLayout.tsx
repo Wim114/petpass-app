@@ -6,6 +6,7 @@ import {
   BarChart3,
   ClipboardList,
   CreditCard,
+  Megaphone,
   LogOut,
   Menu,
   X,
@@ -19,6 +20,7 @@ const navItems = [
   { to: '/admin/analytics', icon: BarChart3, label: 'Analytics', end: false },
   { to: '/admin/plans', icon: CreditCard, label: 'Plans', end: false },
   { to: '/admin/waitlist', icon: ClipboardList, label: 'Waitlist', end: false },
+  { to: '/admin/announcements', icon: Megaphone, label: 'Announcements', end: false },
 ];
 
 export default function AdminLayout() {

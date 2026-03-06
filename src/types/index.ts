@@ -129,6 +129,20 @@ export interface Referral {
   created_at: string;
 }
 
+export type AnnouncementStyle = 'banner' | 'card' | 'spotlight';
+
+export interface Announcement {
+  id: string;
+  title: string;
+  body: string;
+  image_url: string | null;
+  style: AnnouncementStyle;
+  enabled: boolean;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface PlanConfigItem {
   key: PlanType;
   price: number;
