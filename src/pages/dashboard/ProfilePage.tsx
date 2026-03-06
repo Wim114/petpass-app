@@ -77,6 +77,19 @@ export default function ProfilePage() {
       return;
     }
 
+    // Verify file content starts with valid image magic bytes
+    const headerBuf = await file.slice(0, 8).arrayBuffer();
+    const bytes = new Uint8Array(headerBuf);
+    const isValidImage =
+      (bytes[0] === 0xFF && bytes[1] === 0xD8) || // JPEG
+      (bytes[0] === 0x89 && bytes[1] === 0x50) || // PNG
+      (bytes[0] === 0x47 && bytes[1] === 0x49) || // GIF
+      (bytes[0] === 0x52 && bytes[1] === 0x49);   // WebP (RIFF)
+    if (!isValidImage) {
+      setError('File does not appear to be a valid image.');
+      return;
+    }
+
     setAvatarUploading(true);
     setError(null);
 
@@ -159,7 +172,7 @@ export default function ProfilePage() {
             <input
               ref={fileInputRef}
               type="file"
-              accept="image/*"
+              accept=".jpg,.jpeg,.png,.gif,.webp"
               onChange={handleAvatarUpload}
               className="hidden"
             />
