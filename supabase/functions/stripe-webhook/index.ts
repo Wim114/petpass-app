@@ -10,6 +10,14 @@ const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
 const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const webhookSecret = Deno.env.get("STRIPE_WEBHOOK_SECRET")!;
 
+const ALLOWED_ORIGIN = Deno.env.get("SITE_URL") ?? "https://petpass.app";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": ALLOWED_ORIGIN,
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type, stripe-signature",
+};
+
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
 // Map Stripe price IDs to plan names
@@ -155,13 +163,7 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
 
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
-    return new Response("ok", {
-      headers: {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Methods": "POST, OPTIONS",
-        "Access-Control-Allow-Headers": "Content-Type, stripe-signature",
-      },
-    });
+    return new Response("ok", { headers: corsHeaders });
   }
 
   if (req.method !== "POST") {
@@ -204,7 +206,7 @@ Deno.serve(async (req: Request) => {
 
     return new Response(JSON.stringify({ received: true }), {
       status: 200,
-      headers: { "Content-Type": "application/json" },
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err) {
     console.error("Webhook error:", err);
@@ -212,7 +214,7 @@ Deno.serve(async (req: Request) => {
       JSON.stringify({ error: "Webhook processing failed" }),
       {
         status: 400,
-        headers: { "Content-Type": "application/json" },
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
       }
     );
   }
