@@ -17,6 +17,7 @@ import PetManager from '@/pages/dashboard/PetManager';
 import MembershipPage from '@/pages/dashboard/MembershipPage';
 import MembershipCard from '@/pages/dashboard/MembershipCard';
 import SettingsPage from '@/pages/dashboard/SettingsPage';
+import HubPage from '@/pages/dashboard/HubPage';
 
 import AdminDashboard from '@/pages/admin/AdminDashboard';
 import UserManagement from '@/pages/admin/UserManagement';
@@ -51,6 +52,7 @@ export default function App() {
         <Route path="membership" element={<MembershipPage />} />
         <Route path="card" element={<MembershipCard />} />
         <Route path="settings" element={<SettingsPage />} />
+        <Route path="hub" element={<HubPage />} />
       </Route>
 
       {/* Admin routes */}

@@ -1,10 +1,8 @@
-import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowRight } from 'lucide-react';
 import { useLanguage } from '@/i18n/LanguageContext';
 import { useAuthStore } from '@/stores/authStore';
 import { useNews } from '@/hooks/useNews';
-import Modal from '@/components/ui/Modal';
 import type { NewsArticle } from '@/types';
 
 export default function NewsSection() {
@@ -12,7 +10,6 @@ export default function NewsSection() {
   const { user } = useAuthStore();
   const { articles } = useNews();
   const navigate = useNavigate();
-  const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null);
 
   if (articles.length === 0) return null;
 
@@ -23,7 +20,7 @@ export default function NewsSection() {
       navigate('/signup');
       return;
     }
-    setSelectedArticle(article);
+    navigate(`/dashboard/hub?article=${article.id}`);
   };
 
   const getTitle = (article: NewsArticle) =>
@@ -31,9 +28,6 @@ export default function NewsSection() {
 
   const getSummary = (article: NewsArticle) =>
     lang === 'de' ? article.summary_de : article.summary_en;
-
-  const getContent = (article: NewsArticle) =>
-    lang === 'de' ? article.content_de : article.content_en;
 
   return (
     <section className="relative overflow-hidden bg-slate-50 py-16 sm:py-24">
@@ -115,34 +109,6 @@ export default function NewsSection() {
         )}
       </div>
 
-      {/* Article Detail Modal */}
-      {selectedArticle && (
-        <Modal
-          isOpen={!!selectedArticle}
-          onClose={() => setSelectedArticle(null)}
-          title={getTitle(selectedArticle)}
-          maxWidth="max-w-2xl"
-        >
-          {selectedArticle.image_url && (
-            <img
-              src={selectedArticle.image_url}
-              alt={getTitle(selectedArticle)}
-              className="mb-4 w-full rounded-xl object-cover"
-            />
-          )}
-          {selectedArticle.category && (
-            <span
-              className="mb-4 inline-block rounded-full px-3 py-1 text-xs font-bold text-white"
-              style={{ backgroundColor: selectedArticle.badge_color || '#10b981' }}
-            >
-              {selectedArticle.category}
-            </span>
-          )}
-          <div className="whitespace-pre-line text-sm leading-relaxed text-slate-700">
-            {getContent(selectedArticle)}
-          </div>
-        </Modal>
-      )}
     </section>
   );
 }
