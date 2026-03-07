@@ -6,6 +6,7 @@ import HowItWorksSection from '@/components/landing/HowItWorksSection';
 import PricingSection from '@/components/landing/PricingSection';
 import TrustBadges from '@/components/landing/TrustBadges';
 import PartnersSection from '@/components/landing/PartnersSection';
+import NewsSection from '@/components/landing/NewsSection';
 import FaqSection from '@/components/landing/FaqSection';
 import WaitlistSection from '@/components/landing/WaitlistSection';
 import Footer from '@/components/layout/Footer';
@@ -28,6 +29,7 @@ export default function LandingPage() {
       <PricingSection onOpenModal={() => setIsModalOpen(true)} />
       <TrustBadges />
       <PartnersSection />
+      <NewsSection />
       <FaqSection />
       <WaitlistSection onOpenModal={() => setIsModalOpen(true)} />
       <Footer />

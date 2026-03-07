@@ -495,6 +495,15 @@ export const translations = {
       rewarded: 'Rewarded',
       noReferrals: 'No referrals yet. Share your code to get started!',
     },
+
+    // News
+    news: {
+      title: 'Latest News',
+      subtitle: 'Stay updated with PetPass Vienna',
+      learnMore: 'Learn More',
+      signupToRead: 'Sign up to read the full article',
+      close: 'Close',
+    },
   },
 
   de: {
@@ -990,6 +999,15 @@ export const translations = {
       converted: 'Konvertiert',
       rewarded: 'Belohnt',
       noReferrals: 'Noch keine Empfehlungen. Teile deinen Code!',
+    },
+
+    // News
+    news: {
+      title: 'Neuigkeiten',
+      subtitle: 'Bleib informiert mit PetPass Wien',
+      learnMore: 'Mehr erfahren',
+      signupToRead: 'Registriere dich, um den ganzen Artikel zu lesen',
+      close: 'Schlie\u00dfen',
     },
   },
 };

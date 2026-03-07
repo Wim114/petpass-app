@@ -141,6 +141,28 @@ export interface PlanConfig {
   plans: PlanConfigItem[];
 }
 
+export interface NewsArticle {
+  id: string;
+  title_en: string;
+  title_de: string;
+  summary_en: string;
+  summary_de: string;
+  content_en: string;
+  content_de: string;
+  image_url: string;
+  category: string;
+  bg_color: string;
+  text_color: string;
+  badge_color: string;
+  published: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface NewsConfig {
+  articles: NewsArticle[];
+}
+
 export interface AdminStats {
   totalMembers: number;
   totalUsers: number;

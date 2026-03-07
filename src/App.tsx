@@ -23,6 +23,7 @@ import UserManagement from '@/pages/admin/UserManagement';
 import AnalyticsPage from '@/pages/admin/AnalyticsPage';
 import WaitlistManager from '@/pages/admin/WaitlistManager';
 import PlanManagement from '@/pages/admin/PlanManagement';
+import NewsManagement from '@/pages/admin/NewsManagement';
 
 export default function App() {
   return (
@@ -65,6 +66,7 @@ export default function App() {
         <Route path="users" element={<UserManagement />} />
         <Route path="analytics" element={<AnalyticsPage />} />
         <Route path="plans" element={<PlanManagement />} />
+        <Route path="news" element={<NewsManagement />} />
         <Route path="waitlist" element={<WaitlistManager />} />
       </Route>
 
