@@ -1,483 +1,634 @@
-# PetPass Vienna - Security Audit Report
+# PetPass Vienna - Comprehensive Security Audit Report
 
-**Date:** 2026-03-04
-**Auditor:** Automated Security Review (Claude)
-**Target:** https://petpass-app.vercel.app
-**Scope:** Full-stack codebase review (Phases 1-6)
+**Date:** 2026-03-07
+**Auditor:** Security Engineering Team
+**Target:** PetPass production web application
+**Scope:** Full-stack security audit covering Vercel (frontend + serverless), Supabase (backend, DB, auth, storage, edge functions), and Stripe (payments)
+**Prior Audit:** 2026-03-04 (findings V1, V3, V9 remediated via migration 005)
 
 ---
 
-## 1. Architecture Map
+## Table of Contents
+
+1. [Executive Summary](#1-executive-summary)
+2. [Architecture Overview](#2-architecture-overview)
+3. [Methodology](#3-methodology)
+4. [Remediation Status from Prior Audit](#4-remediation-status-from-prior-audit)
+5. [Current Vulnerability Findings](#5-current-vulnerability-findings)
+6. [Security Checklist by Category](#6-security-checklist-by-category)
+7. [Configuration Hardening Guide](#7-configuration-hardening-guide)
+8. [Ongoing Security Maintenance](#8-ongoing-security-maintenance)
+9. [Remediation Timeline](#9-remediation-timeline)
+
+---
+
+## 1. Executive Summary
+
+This is a follow-up comprehensive security audit of the PetPass application. The prior audit (2026-03-04) identified 10 vulnerabilities including 2 critical issues. Since then, migration `005_security_hardening.sql` has been applied, remediating the most critical findings: role escalation via profile UPDATE (old V1), user write access to subscriptions/payments (old V3), and the `claim_admin_role()` RPC (old V9).
+
+The application now demonstrates a solid security foundation:
+- JWT-based authentication on all Vercel API routes
+- RLS on all 7 database tables with security hardening applied
+- Stripe webhook signature verification
+- Comprehensive security headers including CSP
+- Input sanitization on admin endpoints
+- Storage policies with MIME type and size validation
+
+However, this audit identifies **3 critical**, **3 high**, **5 medium**, and **4 low** severity findings that still require attention. The most urgent issues involve **unauthenticated Supabase Edge Functions** that bypass all the security controls present in the equivalent Vercel API routes.
+
+### Finding Summary
+
+| Priority | Count | Key Areas |
+|----------|-------|-----------|
+| Critical | 3 | Unauthenticated Supabase Edge Functions (create-checkout-session, sync-stripe-customer, create-portal-session) |
+| High | 3 | PII exposure in admin stats, no rate limiting, sensitive data in error logs |
+| Medium | 5 | CORS preview deployment access, missing MFA enforcement, non-idempotent webhook, waitlist spam, missing profile INSERT policy |
+| Low | 4 | Referral code predictability, outdated Stripe SDK in edge functions, missing CORS credentials header, silent audit log failures |
+
+---
+
+## 2. Architecture Overview
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                         BROWSER (CLIENT)                        │
-│  React 19 + Vite + React Router v7 + Zustand + React Query     │
-│                                                                 │
-│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐       │
-│  │ AuthGuard │  │AdminGuard│  │ Auth     │  │Dashboard │       │
-│  │(frontend) │  │(frontend)│  │ Store    │  │  Pages   │       │
-│  └──────────┘  └──────────┘  └──────────┘  └──────────┘       │
-│       │              │            │               │             │
-│       ▼              ▼            ▼               ▼             │
-│  ┌─────────────────────────────────────────────────────┐       │
-│  │  supabase-js (anon key) + apiCall() utility          │       │
-│  │  VITE_SUPABASE_URL + VITE_SUPABASE_ANON_KEY          │       │
-│  └──────────────────┬──────────────────────────────────┘       │
-└─────────────────────┼───────────────────────────────────────────┘
-                      │  JWT Bearer Token
-         ┌────────────┼────────────────┐
-         ▼                             ▼
-┌─────────────────────┐  ┌──────────────────────────────────┐
-│  Supabase PostgREST  │  │  Vercel Serverless Functions      │
-│  (RLS Enforcement)   │  │  /api/*                           │
-│                      │  │                                   │
-│  profiles, pets,     │  │  admin-stats.ts                   │
-│  subscriptions,      │  │  create-checkout-session.ts       │
-│  payments, waitlist, │  │  create-portal-session.ts         │
-│  referrals,          │  │  delete-account.ts                │
-│  admin_logs,         │  │  plan-config.ts                   │
-│  site_config         │  │  stripe-webhook.ts                │
-│                      │  │  sync-stripe-customer.ts          │
-└─────────────────────┘  │                                   │
-                         │  Uses: supabaseAdmin               │
-                         │  (SERVICE_ROLE_KEY — bypasses RLS) │
-                         └──────────────┬────────────────────┘
-                                        │
-                         ┌──────────────┼───────────────┐
-                         ▼              ▼               ▼
-                    ┌──────────┐  ┌──────────┐  ┌──────────┐
-                    │ Supabase │  │  Stripe  │  │ Supabase │
-                    │ Database │  │   API    │  │  Auth    │
-                    └──────────┘  └──────────┘  └──────────┘
++-------------------------------------------------------------------+
+|                       BROWSER (CLIENT)                             |
+|  React 19 + Vite 6 + React Router v7 + Zustand + React Query      |
+|                                                                    |
+|  +----------+  +----------+  +----------+  +----------+           |
+|  | AuthGuard |  |AdminGuard|  |  Auth    |  |Dashboard |           |
+|  |(frontend) |  |(frontend)|  |  Store   |  |  Pages   |           |
+|  +----------+  +----------+  +----------+  +----------+           |
+|       |              |            |               |                |
+|       v              v            v               v                |
+|  +-----------------------------------------------------------+    |
+|  |  supabase-js (anon key) + apiCall() utility                |    |
+|  |  VITE_SUPABASE_URL + VITE_SUPABASE_ANON_KEY                |    |
+|  +---------------------+-------------------------------------+    |
++-------------------------|-----------------------------------------+
+                          |  JWT Bearer Token
+           +--------------+----------------+
+           v                               v
++-----------------------+  +--------------------------------+
+|  Supabase PostgREST   |  |  Vercel Serverless Functions    |
+|  (RLS Enforcement)    |  |  /api/*                         |
+|                       |  |                                 |
+|  profiles, pets,      |  |  admin-stats.ts       [auth+admin] |
+|  subscriptions,       |  |  create-checkout.ts   [auth]    |
+|  payments, waitlist,  |  |  create-portal.ts     [auth]    |
+|  referrals,           |  |  delete-account.ts    [auth]    |
+|  admin_logs,          |  |  plan-config.ts       [public/admin] |
+|  site_config          |  |  news.ts              [public/admin] |
+|                       |  |  stripe-webhook.ts    [signature] |
++-----------------------+  |  sync-stripe.ts       [auth]    |
+                           +----------------+---------------+
+                                            |
++-----------------------+  +----------------+  +-------------+
+|  Supabase Edge Funcs  |  |   Supabase DB  |  |  Stripe API |
+|  (NO AUTH on 3 funcs) |  |                |  |             |
+|  create-checkout [!]  |  +----------------+  +-------------+
+|  sync-customer   [!]  |
+|  create-portal   [!]  |
+|  admin-stats     [ok] |
+|  stripe-webhook  [ok] |
++-----------------------+
 ```
 
 ### Trust Boundaries
 
-| Boundary | Description |
-|----------|-------------|
-| Browser → Supabase PostgREST | RLS policies enforce row-level access |
-| Browser → Vercel API | JWT verification + role checks in each handler |
-| Vercel API → Supabase | SERVICE_ROLE_KEY bypasses all RLS |
-| Stripe → Vercel Webhook | Stripe signature verification |
-| Browser → Supabase Storage | Storage bucket policies (not audited in SQL) |
+| Boundary | Protection | Status |
+|----------|-----------|--------|
+| Browser -> Supabase PostgREST | RLS policies | OK (hardened) |
+| Browser -> Vercel API | JWT verification + role checks | OK |
+| Browser -> Supabase Edge Functions | JWT verification | **3 FUNCTIONS MISSING AUTH** |
+| Vercel API -> Supabase | SERVICE_ROLE_KEY (bypasses RLS) | OK (server-side only) |
+| Stripe -> Vercel Webhook | Stripe signature verification | OK |
+| Browser -> Supabase Storage | Bucket policies (MIME + size) | OK |
 
 ---
 
-## 2. Auth Flow
+## 3. Methodology
 
-```
-SIGNUP:
-  Browser → supabase.auth.signUp({email, password, metadata})
-    → Supabase creates auth.users row
-    → Trigger: handle_new_user() creates profiles row
-    → Session returned with JWT
+### 3.1 Static Analysis
+- Manual code review of all 7 Vercel serverless functions (`api/*.ts`)
+- Manual code review of all 5 Supabase Edge Functions (`supabase/functions/*/index.ts`)
+- Review of all 6 database migrations for RLS policies and schema security
+- Review of client-side auth flow (`src/stores/authStore.ts`, `src/lib/supabase.ts`)
+- Pattern search for hardcoded secrets, exposed keys, and unsafe practices
 
-SIGN IN:
-  Browser → supabase.auth.signInWithPassword()
-    → JWT issued → stored in localStorage (persistSession: true)
-    → authStore.fetchProfile() loads profile from DB
-    → Profile.role determines admin access
+### 3.2 Configuration Review
+- `vercel.json`: Security headers, CSP, rewrites
+- `.env.example`: Environment variable inventory
+- `package.json`: Dependency versions and known vulnerabilities
+- Supabase storage policies (migration 006)
 
-API CALLS:
-  Browser → apiCall(endpoint)
-    → Gets session.access_token from supabase.auth.getSession()
-    → Sends Authorization: Bearer {token}
-    → Vercel API → verifyUser() validates JWT via supabase.auth.getUser()
-
-ADMIN ACCESS:
-  Frontend: AdminGuard checks profile?.role === 'admin'
-  Backend: verifyUser() + profiles.role === 'admin' query
-```
+### 3.3 Threat Modeling
+- Data flow mapping across all integration points
+- Attack surface enumeration for authenticated and unauthenticated paths
+- OWASP Top 10 evaluation against each endpoint
+- Comparison of Vercel API routes vs Supabase Edge Functions for security parity
 
 ---
 
-## 3. Authorization Model
+## 4. Remediation Status from Prior Audit
 
-| Resource | Frontend Guard | Backend Guard | RLS |
-|----------|---------------|---------------|-----|
-| Dashboard pages | AuthGuard | N/A (direct Supabase) | Yes - own rows |
-| Admin pages | AdminGuard | verifyUser + role check | Admin SELECT |
-| Admin stats API | N/A | verifyUser + admin check | N/A (service role) |
-| Plan config GET | None | None (public) | SELECT using(true) |
-| Plan config PUT | N/A | verifyUser + admin check | N/A (service role) |
-| Delete account | AuthGuard | verifyUser (own user) | N/A (service role) |
-| Checkout session | AuthGuard | verifyUser | N/A (service role) |
-| Portal session | AuthGuard | verifyUser | N/A (service role) |
-| Stripe webhook | N/A | Stripe signature | N/A (service role) |
-| **Sync Stripe customer** | **None** | **NONE** | **N/A (service role)** |
-
----
-
-## 4. RLS Analysis
-
-### Policies by Table
-
-| Table | SELECT | INSERT | UPDATE | DELETE | Issues |
-|-------|--------|--------|--------|--------|--------|
-| profiles | Own + Admin | Own (migration 003) | Own | Own | Missing WITH CHECK on UPDATE |
-| pets | Own + Admin | Own | Own | Own | OK |
-| subscriptions | Own + Admin | Own | Own | Own | Users can INSERT/UPDATE/DELETE own subs |
-| payments | Own + Admin | Own | Own | Own | Users can INSERT/DELETE own payments |
-| waitlist | Admin only | Anyone | None | None | No update/delete policy |
-| referrals | Own + Admin | Own | Own | Own | OK |
-| admin_logs | Admin | Admin INSERT | None | None | OK |
-| site_config | Anyone | Admin | Admin | Admin | OK |
-
-### Critical RLS Observations
-
-1. **profiles UPDATE policy lacks WITH CHECK** — The UPDATE policy uses `using (id = auth.uid())` but has no `with check` clause. This means the USING condition only controls *which rows* can be updated, but the user could potentially set any column value including `role`.
-
-2. **subscriptions/payments full CRUD for users** — Users can INSERT, UPDATE, and DELETE their own subscription and payment records directly via PostgREST. This could allow subscription status manipulation.
-
-3. **Admin role check is self-referential** — Admin policies query `profiles` to check `role = 'admin'`. If a user manages to set their own role to 'admin', all admin policies pass.
+| Old ID | Severity | Finding | Status | Remediation |
+|--------|----------|---------|--------|-------------|
+| V1 | CRITICAL | Role escalation via profile UPDATE | **FIXED** | Migration 005: Added WITH CHECK preventing role modification |
+| V2 | CRITICAL | Unauthenticated sync-stripe-customer (Vercel) | **FIXED** | `api/sync-stripe-customer.ts` now has `verifyUser()` + user ID enforcement |
+| V3 | HIGH | User CRUD on subscriptions/payments | **FIXED** | Migration 005: Dropped INSERT/UPDATE/DELETE policies |
+| V4 | HIGH | CORS wildcard `.vercel.app` | **PARTIALLY FIXED** | Tightened to project-specific regex, but still allows all preview deployments (see V7 below) |
+| V5 | HIGH | Edge Function CORS `*` | **PARTIALLY FIXED** | `admin-stats` edge function now uses `ALLOWED_ORIGIN` from env, but other edge functions have more fundamental issues (V1-V3 below) |
+| V6 | MEDIUM | Unrestricted file upload | **FIXED** | Migration 006: Storage policies with 5MB limit and MIME type validation |
+| V7 | MEDIUM | Missing CSP header | **FIXED** | `vercel.json` now includes comprehensive CSP |
+| V8 | MEDIUM | getSession() for token extraction | **ACCEPTABLE** | Server-side `verifyUser()` uses `getUser()` which validates the token |
+| V9 | LOW | `claim_admin_role()` RPC | **FIXED** | Migration 005: Function dropped |
+| V10 | LOW | Error message disclosure | **PARTIALLY FIXED** | Vercel API routes now return generic messages; see V6 below for remaining logging concerns |
 
 ---
 
-## 5. Attack Surface
+## 5. Current Vulnerability Findings
 
-### Vulnerability Summary
+### V1 - CRITICAL: Unauthenticated Checkout Session Creation (Edge Function)
 
-| # | Severity | Category | Location | Description |
-|---|----------|----------|----------|-------------|
-| V1 | **CRITICAL** | Privilege Escalation | RLS + profiles UPDATE | Users can update their own `role` column to 'admin' |
-| V2 | **CRITICAL** | Unauthenticated API | `api/sync-stripe-customer.ts` | No authentication — anyone can create Stripe customers for any user |
-| V3 | **HIGH** | Data Manipulation | RLS subscriptions/payments | Users can modify their own subscription status and payment records |
-| V4 | **HIGH** | CORS Misconfiguration | `api/_lib/cors.ts` | Wildcard `.vercel.app` allows any Vercel deployment to make requests |
-| V5 | **HIGH** | Deno Edge Functions | `supabase/functions/admin-stats` | CORS allows all origins (`*`) |
-| V6 | **MEDIUM** | File Upload | `ProfilePage.tsx` | No file type/size validation on avatar upload |
-| V7 | **MEDIUM** | Missing CSP | `vercel.json` | No Content-Security-Policy header |
-| V8 | **MEDIUM** | Session via getSession() | `src/lib/api.ts` | Uses `getSession()` instead of `getUser()` for token — can be spoofed from localStorage |
-| V9 | **LOW** | Admin Bootstrap | `claim_admin_role()` RPC | First user can claim admin — no revocation mechanism |
-| V10 | **LOW** | Information Disclosure | Error responses | Stack traces in error messages (`(err as Error).message`) |
+| Attribute | Detail |
+|-----------|--------|
+| **File** | `supabase/functions/create-checkout-session/index.ts:34` |
+| **Description** | The Supabase Edge Function accepts `userId` directly from the request body without any JWT verification. It uses the service role key (line 13) to query and update profiles, bypassing all RLS. Compare with the secure Vercel equivalent at `api/create-checkout-session.ts:26` which properly calls `verifyUser()`. |
+| **Impact** | An attacker can create Stripe checkout sessions for any user, potentially linking subscriptions to victims' accounts, manipulating billing state, or causing unwanted charges. |
+| **Likelihood** | High - The endpoint is publicly accessible with zero authentication. |
+| **Priority** | **Critical** |
+| **Recommended Fix** | Add JWT verification following the pattern in `supabase/functions/admin-stats/index.ts:42-67`. Extract and verify the token from the Authorization header, then use `user.id` instead of the request body `userId`. Additionally, add price ID validation (the Vercel route has `ALLOWED_PRICE_IDS` whitelist at line 9-15; the edge function has none). |
 
----
+### V2 - CRITICAL: Unauthenticated Stripe Customer Sync (Edge Function)
 
-## 6. Vulnerabilities — Detailed Analysis
+| Attribute | Detail |
+|-----------|--------|
+| **File** | `supabase/functions/sync-stripe-customer/index.ts:32` |
+| **Description** | Accepts `userId` and `email` from the request body without JWT verification. Uses the service role key to query profiles and create Stripe customers for arbitrary users. The Vercel equivalent (`api/sync-stripe-customer.ts:15-23`) correctly verifies the JWT and derives userId from the authenticated user. |
+| **Impact** | Attacker can create Stripe customers linked to any Supabase user, potentially overwriting their `stripe_customer_id` and hijacking their billing relationship. The response also discloses existing customer IDs (`customerId` field). |
+| **Likelihood** | High - Publicly accessible, no authentication required. |
+| **Priority** | **Critical** |
+| **Recommended Fix** | Add JWT verification. Use the authenticated user's ID instead of trusting the request body. |
 
-### V1: CRITICAL — Users Can Escalate to Admin Role
+### V3 - CRITICAL: Unauthenticated Billing Portal Access (Edge Function)
 
-**File:** `supabase/migrations/001_initial_schema.sql:140-142`
-**RLS Policy:** "Users can update their own profile"
+| Attribute | Detail |
+|-----------|--------|
+| **File** | `supabase/functions/create-portal-session/index.ts:29` |
+| **Description** | Accepts `customerId` from the request body without any authentication or ownership verification. An attacker who knows or guesses a Stripe customer ID (`cus_*` format) can open a billing portal session. The Vercel equivalent (`api/create-portal-session.ts:17-32`) correctly verifies the JWT and looks up the customer ID from the authenticated user's profile. |
+| **Impact** | Unauthorized access to Stripe billing portal: view subscription details, update payment methods, cancel subscriptions, access invoice history with PII. |
+| **Likelihood** | High - Stripe customer IDs follow predictable patterns and may be exposed through other vulnerabilities. |
+| **Priority** | **Critical** |
+| **Recommended Fix** | Add JWT verification. Look up `stripe_customer_id` from the authenticated user's profile instead of accepting it from the request body. |
 
-```sql
-create policy "Users can update their own profile"
-  on public.profiles for update
-  using (id = auth.uid());
-  -- NO WITH CHECK clause — any column can be set to any value
-```
+### V4 - HIGH: Admin Stats Endpoint Exposes Raw User Emails
 
-**Why Vulnerable:** The UPDATE policy only has a `USING` clause (controls which rows), but no `WITH CHECK` clause (controls what values can be written). Since the `role` column has no column-level security, any authenticated user can execute:
+| Attribute | Detail |
+|-----------|--------|
+| **File** | `api/admin-stats.ts:279-292` |
+| **Description** | The `recentSignups` array in the response includes raw email addresses (line 288: `email: row.email`). While the endpoint requires admin authentication, this creates unnecessary PII exposure in API responses that could be logged, cached by CDN/proxy, or intercepted. The admin stats edge function (`supabase/functions/admin-stats/index.ts`) does not expose emails. |
+| **Impact** | PII leakage of user email addresses. Violates GDPR data minimization principle (Article 5). |
+| **Likelihood** | Medium - Requires compromised admin credentials. |
+| **Priority** | **High** |
+| **Recommended Fix** | Mask email addresses (e.g., `j***@example.com`). If full emails are needed for admin operations, create a separate endpoint with additional audit logging. |
 
-```sql
-UPDATE profiles SET role = 'admin' WHERE id = auth.uid();
-```
+### V5 - HIGH: No Rate Limiting on Any Endpoint
 
-Or via the Supabase JS client:
-```javascript
-await supabase.from('profiles').update({ role: 'admin' }).eq('id', user.id);
-```
+| Attribute | Detail |
+|-----------|--------|
+| **Files** | All `api/*.ts` and `supabase/functions/*/index.ts` |
+| **Description** | No application-level rate limiting exists on any endpoint. While Supabase Auth has built-in rate limits and Vercel provides basic DDoS protection, custom API routes have no request throttling. Critical endpoints like `delete-account`, `create-checkout-session`, and `admin-stats` can be called at arbitrary rates. |
+| **Impact** | Brute-force attacks, resource exhaustion through expensive Stripe API calls, database query flooding, potential cost escalation on Vercel/Stripe. |
+| **Likelihood** | Medium - Requires targeting specific endpoints. |
+| **Priority** | **High** |
+| **Recommended Fix** | Implement rate limiting using Vercel Edge Middleware with Upstash Redis or `@vercel/kv`. Suggested limits: auth endpoints 10/min, checkout 5/min, admin 30/min, delete-account 3/hour, webhook 100/min. |
 
-**Exploit Scenario:**
-1. Authenticated user opens browser DevTools console
-2. Runs: `(await window.__supabase.from('profiles').update({role:'admin'}).eq('id', '<user-id>'))`
-3. User now has admin access to all admin pages and API endpoints
-4. Can view all user data, modify plans, view revenue, etc.
+### V6 - HIGH: Sensitive Data in Error Logs
 
-**Impact:** Complete admin takeover. All admin-only API endpoints trust the `role` column from the same `profiles` table.
+| Attribute | Detail |
+|-----------|--------|
+| **Files** | `api/stripe-webhook.ts:41,64,106,139,152,194`, `api/delete-account.ts:49,63,70`, `api/admin-stats.ts:327`, `api/sync-stripe-customer.ts:62,71`, `supabase/functions/create-checkout-session/index.ts:104` |
+| **Description** | Multiple endpoints log full error objects via `console.error('...:', err)`. These error objects from Stripe and Supabase may contain customer IDs, email addresses, payment intent details, database query information, or authentication tokens. These logs persist in Vercel and Supabase dashboards. |
+| **Impact** | Sensitive data (customer IDs, emails, internal details) stored in log systems with potentially broad team access and long retention. |
+| **Likelihood** | Medium - Requires access to deployment logs. |
+| **Priority** | **High** |
+| **Recommended Fix** | Sanitize error objects before logging: `console.error('Webhook error:', err instanceof Error ? err.message : 'Unknown error')`. Never log full error objects that may contain Stripe or Supabase response data. |
 
-**Fix:** Add a restrictive RLS policy that prevents role modification, or add a `WITH CHECK` clause.
+### V7 - MEDIUM: CORS Allows All Preview Deployments Against Production API
 
----
+| Attribute | Detail |
+|-----------|--------|
+| **File** | `api/_lib/cors.ts:15` |
+| **Description** | The regex `/^https:\/\/petpass-app[a-z0-9-]*\.vercel\.app$/` allows any Vercel preview deployment matching the `petpass-app*` pattern. If preview deployments share production environment variables (a common Vercel default), any preview deployment can make authenticated API calls against the production database and Stripe account. |
+| **Impact** | A compromised or malicious PR's preview deployment could access production data and payment systems. |
+| **Likelihood** | Low-Medium - Requires a preview deployment with production env vars. |
+| **Priority** | **Medium** |
+| **Recommended Fix** | (1) Scope production secrets to "Production" environment only in Vercel dashboard. (2) Use separate Supabase project or Stripe test keys for preview. (3) Optionally tighten the regex or use an explicit allowlist. |
 
-### V2: CRITICAL — Unauthenticated Stripe Customer Sync
+### V8 - MEDIUM: No MFA Enforcement for Admin Accounts
 
-**File:** `api/sync-stripe-customer.ts:6-65`
+| Attribute | Detail |
+|-----------|--------|
+| **Files** | `src/components/auth/AdminGuard.tsx`, `api/admin-stats.ts:30`, `api/plan-config.ts:107`, `api/news.ts:72` |
+| **Description** | Admin access is determined solely by `profile.role === 'admin'` with standard password/OAuth authentication. Supabase supports TOTP-based MFA, but it is not enforced for admin accounts. A compromised admin password grants full administrative access. |
+| **Impact** | Admin account compromise through credential theft, phishing, or credential stuffing gives full access to all user data, revenue metrics, and content management. |
+| **Likelihood** | Medium - Depends on admin password hygiene and phishing resistance. |
+| **Priority** | **Medium** |
+| **Recommended Fix** | Enable Supabase MFA (TOTP). Add server-side MFA verification in admin endpoints by checking `supabase.auth.mfa.getAuthenticatorAssuranceLevel()` returns `aal2`. Add a client-side MFA enrollment flow for admin users. |
 
-```typescript
-export default async function handler(req, res) {
-  // NO verifyUser() call — NO authentication
-  const { userId, email, name } = req.body;
-  // Uses supabaseAdmin to query and update any profile
-  // Creates Stripe customers for arbitrary users
-}
-```
+### V9 - MEDIUM: Stripe Invoice Webhook Not Idempotent
 
-**Why Vulnerable:** This endpoint has zero authentication. Any unauthenticated request can:
-1. Query any user's `stripe_customer_id` by providing their `userId`
-2. Create a Stripe customer for any user
-3. Overwrite a user's `stripe_customer_id` in their profile
+| Attribute | Detail |
+|-----------|--------|
+| **File** | `api/stripe-webhook.ts:69-108` |
+| **Description** | The `handleInvoicePaid` function uses `.insert()` (line 94) for payment records without checking for duplicates. While `handleCheckoutSessionCompleted` uses `.upsert()` with `onConflict: 'stripe_subscription_id'` (line 48), the invoice handler has no idempotency protection. The `payments` table has no unique constraint on `stripe_invoice_id`. Stripe retries webhook delivery on timeout or failure. |
+| **Impact** | Duplicate payment records inflating revenue metrics, accounting discrepancies, potential issues with refund processing. |
+| **Likelihood** | Medium - Stripe routinely retries webhooks. |
+| **Priority** | **Medium** |
+| **Recommended Fix** | (1) Add a unique constraint: `ALTER TABLE payments ADD CONSTRAINT unique_stripe_invoice UNIQUE (stripe_invoice_id)`. (2) Use `.upsert({ ... }, { onConflict: 'stripe_invoice_id' })` instead of `.insert()`. |
 
-**Exploit Scenario:**
-1. Attacker sends `POST /api/sync-stripe-customer` with `{ userId: "<victim-uuid>", email: "attacker@evil.com" }`
-2. A new Stripe customer is created with the attacker's email
-3. The victim's profile `stripe_customer_id` is overwritten
-4. Attacker can now manipulate the victim's billing via the new Stripe customer
+### V10 - MEDIUM: Waitlist Table Open to Unlimited Spam Insertions
 
-**Impact:** Billing takeover for any user. Potential financial fraud.
+| Attribute | Detail |
+|-----------|--------|
+| **File** | `supabase/migrations/001_initial_schema.sql:237-238` |
+| **Description** | The RLS policy `"Anyone can insert into waitlist"` uses `WITH CHECK (true)`, allowing unlimited anonymous insertions with no rate limiting, CAPTCHA, email validation, or deduplication. There is no unique constraint on the `email` column. |
+| **Impact** | Waitlist table can be flooded with millions of spam entries, causing storage costs, polluting analytics, and potentially degrading database performance. |
+| **Likelihood** | Medium - The endpoint is fully open to unauthenticated requests. |
+| **Priority** | **Medium** |
+| **Recommended Fix** | (1) Add unique constraint on `email`. (2) Add rate limiting at the application layer (e.g., Vercel Edge Middleware). (3) Consider requiring CAPTCHA or email verification. |
 
-**Fix:** Add `verifyUser()` and ensure `userId === user.id`.
+### V11 - MEDIUM: No Explicit INSERT Policy on Profiles Table
 
----
+| Attribute | Detail |
+|-----------|--------|
+| **File** | `supabase/migrations/001_initial_schema.sql:135-155` |
+| **Description** | The `profiles` table has SELECT, UPDATE, and DELETE policies but no explicit INSERT policy. Profile creation is handled by the `handle_new_user()` trigger (line 299-313) which runs as `SECURITY DEFINER`. Without an explicit INSERT deny policy, the security relies on RLS's implicit deny behavior. |
+| **Impact** | If RLS defaults or Supabase behavior changes, direct client-side profile insertion could become possible. Low risk currently but violates defense-in-depth. |
+| **Likelihood** | Low - Current code only creates profiles via the trigger. |
+| **Priority** | **Medium** |
+| **Recommended Fix** | Add explicit policy: `CREATE POLICY "Profiles created by trigger only" ON profiles FOR INSERT WITH CHECK (false);` |
 
-### V3: HIGH — Users Can Manipulate Subscriptions/Payments via RLS
+### V12 - LOW: Referral Code Predictability
 
-**File:** `supabase/migrations/001_initial_schema.sql:184-232`
+| Attribute | Detail |
+|-----------|--------|
+| **File** | `supabase/migrations/001_initial_schema.sql:309` |
+| **Description** | Referral codes are generated via `'PPV-' || upper(substr(md5(random()::text), 1, 6))`, producing codes like `PPV-A1B2C3`. With only hex characters and 6 positions, the keyspace is 16^6 = ~16.7M combinations. MD5 of `random()` provides weak randomness. |
+| **Impact** | Referral codes could be brute-forced to claim referral rewards fraudulently. |
+| **Likelihood** | Low - Requires many attempts and understanding of the referral reward system. |
+| **Priority** | **Low** |
+| **Recommended Fix** | Use `encode(gen_random_bytes(8), 'hex')` for stronger randomness and longer codes (16 hex chars = 2^64 combinations). |
 
-```sql
--- Users can INSERT/UPDATE/DELETE their own subscriptions
-create policy "Users can insert their own subscriptions" ...
-create policy "Users can update their own subscriptions" ...
-create policy "Users can delete their own subscriptions" ...
+### V13 - LOW: Outdated Stripe SDK and API Version in Edge Functions
 
--- Same for payments
-create policy "Users can insert their own payments" ...
-create policy "Users can update their own payments" ...
-create policy "Users can delete their own payments" ...
-```
+| Attribute | Detail |
+|-----------|--------|
+| **Files** | `supabase/functions/create-checkout-session/index.ts:2,5`, `supabase/functions/create-portal-session/index.ts:1,5` |
+| **Description** | Edge functions use `stripe@14.11.0` with `apiVersion: "2023-10-16"`, while Vercel functions use `stripe@20.4.0` (from `package.json:28`). The edge functions are 6+ major versions behind. |
+| **Impact** | Missing security patches, bug fixes, and API improvements from the Stripe SDK. |
+| **Likelihood** | Low - Stripe maintains backward compatibility. |
+| **Priority** | **Low** |
+| **Recommended Fix** | Update edge function Stripe imports to match latest stable version. Maintain consistent versioning across Vercel and Supabase functions. |
 
-**Why Vulnerable:** These policies were designed for server-side operations (webhook processing) but the server uses `supabaseAdmin` (service role) which bypasses RLS entirely. The RLS policies therefore only apply to **client-side** requests, giving users direct write access.
+### V14 - LOW: CORS Missing Access-Control-Allow-Credentials Header
 
-**Exploit Scenario:**
-```javascript
-// User upgrades themselves to VIP for free
-await supabase.from('subscriptions').insert({
-  user_id: user.id,
-  plan: 'vip',
-  status: 'active',
-  current_period_end: '2099-12-31T00:00:00Z'
-});
+| Attribute | Detail |
+|-----------|--------|
+| **File** | `api/_lib/cors.ts` |
+| **Description** | CORS configuration does not explicitly set `Access-Control-Allow-Credentials`. The app uses Bearer tokens via Authorization headers rather than cookies, so this is not currently exploitable. However, the omission should be a documented design decision. |
+| **Impact** | Minimal given current auth mechanism. Would become relevant if cookie-based auth is ever added. |
+| **Likelihood** | Low. |
+| **Priority** | **Low** |
+| **Recommended Fix** | Document that credentials are intentionally not supported in CORS. If cookies are ever introduced for auth, this must be revisited. |
 
-// User creates fake payment records
-await supabase.from('payments').insert({
-  user_id: user.id,
-  amount_cents: 0,
-  status: 'paid'
-});
-```
+### V15 - LOW: Audit Log Failures Silently Swallowed
 
-**Impact:** Free subscription upgrades, fake payment records, revenue data corruption.
-
-**Fix:** Remove INSERT/UPDATE/DELETE policies for subscriptions and payments. Only the webhook (service role) should write these tables.
-
----
-
-### V4: HIGH — Overly Permissive CORS Wildcard
-
-**File:** `api/_lib/cors.ts:12`
-
-```typescript
-if (allowedOrigins.includes(origin) || origin.endsWith('.vercel.app')) {
-  return origin;
-}
-```
-
-**Why Vulnerable:** Any domain ending in `.vercel.app` is trusted. An attacker can deploy a malicious site on Vercel (e.g., `evil-phishing.vercel.app`) and make authenticated cross-origin requests to PetPass APIs.
-
-**Exploit Scenario:**
-1. Attacker deploys `https://petpass-phishing.vercel.app` on Vercel free tier
-2. Victim visits attacker's site while logged into PetPass
-3. Attacker's JavaScript makes requests to PetPass API using victim's cookies/tokens
-4. Attacker can invoke delete-account, create-checkout-session, etc.
-
-**Fix:** Only allow the specific Vercel preview deployment pattern for this project.
-
----
-
-### V5: HIGH — Edge Functions Allow All Origins
-
-**File:** `supabase/functions/admin-stats/index.ts:8-11`
-
-```typescript
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-};
-```
-
-**Why Vulnerable:** All Supabase edge functions use `Access-Control-Allow-Origin: *`. While the admin-stats function does verify JWT + admin role, the wildcard CORS allows any website to attempt requests. Combined with V1 (privilege escalation), this widens the attack surface significantly.
-
-**Fix:** Restrict to known origins only.
-
----
-
-### V6: MEDIUM — Unrestricted File Upload
-
-**File:** `src/pages/dashboard/ProfilePage.tsx:62-88`
-
-```typescript
-const handleAvatarUpload = async (e) => {
-  const file = e.target.files?.[0];
-  // No file size check
-  // No MIME type validation
-  // File extension taken from user-controlled file.name
-  const fileExt = file.name.split('.').pop();
-  const filePath = `${user.id}/avatar.${fileExt}`;
-  await supabase.storage.from('avatars').upload(filePath, file, { upsert: true });
-};
-```
-
-**Why Vulnerable:**
-- No file size limit (DoS via large uploads)
-- No MIME type validation (only HTML `accept="image/*"` which is client-side only)
-- File extension from user input (could upload `.html`, `.svg` with scripts)
-- If the `avatars` bucket is public, uploaded SVGs with embedded JavaScript execute in the browser
-
-**Fix:** Validate file type and size on client and enforce via Supabase storage policies.
+| Attribute | Detail |
+|-----------|--------|
+| **Files** | `api/plan-config.ts:165-167`, `api/news.ts:134-136` |
+| **Description** | Admin audit log insertions are wrapped in try/catch with empty catch blocks. If the `admin_logs` table is unavailable or the insert fails, no error is logged and the admin action proceeds without being recorded. This creates a gap in the audit trail. |
+| **Impact** | Missing audit trail for admin actions during logging failures. Could mask unauthorized admin activity. |
+| **Likelihood** | Low - Only occurs if the admin_logs table is unavailable. |
+| **Priority** | **Low** |
+| **Recommended Fix** | At minimum, log the failure: `catch (e) { console.error('Audit log failed:', e instanceof Error ? e.message : 'Unknown'); }`. Consider making audit logging mandatory for critical actions. |
 
 ---
 
-### V7: MEDIUM — Missing Content Security Policy
+## 6. Security Checklist by Category
 
-**File:** `vercel.json:8-18`
+### 6.1 Authentication & Authorization
 
-Headers include `X-Frame-Options`, `X-Content-Type-Options`, `X-XSS-Protection`, and `Referrer-Policy` but **no Content-Security-Policy** header.
+- [x] JWT-based authentication on all Vercel API routes via `verifyUser()` (`api/_lib/supabase.ts:12-25`)
+- [x] Server-side token validation using `supabase.auth.getUser()` (not just `getSession()`)
+- [x] Admin role check on all admin endpoints (admin-stats, plan-config PUT, news PUT)
+- [x] Role escalation prevention via RLS WITH CHECK clause (`005_security_hardening.sql:16-22`)
+- [x] `claim_admin_role()` RPC removed (`005_security_hardening.sql:49`)
+- [x] Client-side AdminGuard for routing protection
+- [x] User can only sync their own Stripe customer in Vercel route (`api/sync-stripe-customer.ts:23`)
+- [ ] **FAIL: 3 Supabase Edge Functions lack authentication (V1, V2, V3)**
+- [ ] **FAIL: No MFA enforcement for admin accounts (V8)**
+- [ ] Verify Supabase JWT expiry is set to 3600s or less
+- [ ] Verify OAuth provider scopes follow least-privilege
+- [ ] Verify email confirmation is required for new signups
+- [ ] Verify password strength requirements are configured
 
-**Why Vulnerable:** Without CSP, if any XSS vector exists (e.g., stored XSS via uploaded SVGs, or future template changes), there is no defense-in-depth to prevent script execution.
+### 6.2 Data Protection & Encryption
 
-**Fix:** Add a strict CSP header.
+- [x] Supabase provides encryption at rest for PostgreSQL
+- [x] SSL/TLS enforced via Vercel (automatic) and HSTS header
+- [x] No raw card data stored - Stripe handles all payment details
+- [x] CSP header restricts script and connection sources (`vercel.json:18`)
+- [x] `X-Frame-Options: DENY` prevents clickjacking
+- [x] GDPR consent fields in schema (`gdpr_consent_at`, `marketing_consent`)
+- [ ] **FAIL: User emails exposed in admin-stats response (V4)**
+- [ ] **FAIL: Sensitive data potentially logged via console.error (V6)**
+- [ ] Verify EXIF data is stripped from uploaded avatar images
+- [ ] Verify GDPR consent is collected before data processing begins
 
----
+### 6.3 API & Serverless Function Security
 
-### V8: MEDIUM — getSession() Used for Token Extraction
+- [x] Input validation on checkout (price ID whitelist in Vercel route)
+- [x] Input sanitization on plan-config and news (HTML tag stripping, length limits)
+- [x] Parameterized queries via Supabase JS client (no raw SQL)
+- [x] HTTP method restrictions on all endpoints
+- [x] Error responses don't expose stack traces to clients (generic messages)
+- [x] `X-Content-Type-Options: nosniff` prevents MIME sniffing
+- [ ] **FAIL: No rate limiting on any endpoint (V5)**
+- [ ] **FAIL: CORS allows preview deployments (V7)**
+- [ ] **FAIL: Edge function checkout has no price ID validation (V1)**
+- [ ] Verify request body size limits are configured
+- [ ] Add `Cache-Control: no-store` to sensitive API responses
 
-**File:** `src/lib/api.ts:10`
+### 6.4 Third-Party Integrations (Stripe)
 
-```typescript
-const { data: { session } } = await supabase.auth.getSession();
-```
+- [x] Webhook signature verification using `stripe.webhooks.constructEvent()` (`api/stripe-webhook.ts:171`)
+- [x] Raw body parsing disabled for webhook (`api/stripe-webhook.ts:8-10`)
+- [x] Stripe secret keys only in server-side environment variables
+- [x] Price ID whitelist validation in Vercel checkout route (`api/create-checkout-session.ts:9-15`)
+- [x] `supabase_user_id` stored in Stripe customer metadata for reconciliation
+- [x] Stripe publishable key exposed only as `VITE_STRIPE_PUBLISHABLE_KEY` (client-safe)
+- [ ] **FAIL: Invoice webhook not idempotent (V9)**
+- [ ] **FAIL: Edge function checkout has no price validation (V1)**
+- [ ] Verify Stripe test mode keys are not in production environment
+- [ ] Verify PCI-DSS SAQ A compliance
+- [ ] Consider handling `invoice.payment_failed` events
 
-**Why Vulnerable:** Supabase documentation warns that `getSession()` reads from localStorage without server-side validation. If an attacker can write to localStorage (via XSS or shared domain), they can inject a forged session token. The `getUser()` method validates against the server.
+### 6.5 Infrastructure - Vercel
 
-**Mitigation Note:** The server-side `verifyUser()` does call `getUser()`, which validates the token. So the risk is limited to client-side state confusion, not backend auth bypass.
+- [x] Comprehensive security headers in `vercel.json`:
+  - `X-Content-Type-Options: nosniff`
+  - `X-Frame-Options: DENY`
+  - `Referrer-Policy: strict-origin-when-cross-origin`
+  - `X-XSS-Protection: 1; mode=block`
+  - `Permissions-Policy: camera=(), microphone=(), geolocation=()`
+  - `Strict-Transport-Security: max-age=31536000; includeSubDomains`
+  - Content-Security-Policy with restricted sources
+- [x] SPA rewrite excludes `/api` and `/assets` paths
+- [ ] Verify production secrets are NOT available in preview deployments
+- [ ] Verify Deployment Protection is enabled for previews
+- [ ] Consider adding `preload` to HSTS directive
+- [ ] Set `maxDuration` on serverless functions
 
-**Fix:** Use `getUser()` on the client for security-critical decisions, or at minimum document the trade-off.
+### 6.6 Infrastructure - Supabase
 
----
+- [x] RLS enabled on all 7 tables (`001_initial_schema.sql:127-133`)
+- [x] Security hardening migration applied (`005_security_hardening.sql`)
+- [x] Storage avatar policies with MIME validation and 5MB limit (`006_storage_avatar_policies.sql`)
+- [x] Trigger functions use `SECURITY DEFINER` with explicit `search_path`
+- [x] User write access to subscriptions/payments removed
+- [ ] **FAIL: Missing explicit INSERT policy on profiles (V11)**
+- [ ] Verify database is not publicly accessible
+- [ ] Verify PITR (Point-in-Time Recovery) is enabled
+- [ ] Verify automatic backups are configured and tested
+- [ ] Check if Realtime is enabled - disable if not needed
+- [ ] Verify `site_config` table RLS policies exist
 
-### V9: LOW — Admin Bootstrap Without Revocation
+### 6.7 Logging, Monitoring & Incident Response
 
-**File:** `supabase/migrations/002_fix_profile_metadata.sql:45-63`
+- [x] Admin audit logging via `admin_logs` table (plan-config, news)
+- [x] Stripe webhook events logged by type (`api/stripe-webhook.ts:173`)
+- [ ] **FAIL: Audit log failures silently swallowed (V15)**
+- [ ] No alerting for failed authentication attempts
+- [ ] No monitoring for unusual API usage patterns
+- [ ] No alerting for payment anomalies
+- [ ] No documented incident response plan
+- [ ] Consider structured JSON logging for analysis
+- [ ] Set up 5xx error rate alerts
 
-```sql
-create or replace function public.claim_admin_role()
-returns boolean
-language plpgsql
-security definer set search_path = public
-as $$
-begin
-  if exists (select 1 from public.profiles where role = 'admin') then
-    return false;
-  end if;
-  update public.profiles set role = 'admin' where id = auth.uid();
-  return true;
-end;
-$$;
-```
+### 6.8 Runtime & Dependency Management
 
-**Why Vulnerable:** This function is callable by any authenticated user. While it checks if an admin already exists, combined with V1 (role escalation), an attacker could remove the existing admin first and then claim the role.
+- [x] Modern dependency versions (React 19, Vite 6, Stripe 20)
+- [x] `.env.example` documents variables without real values
+- [x] No `.env` files committed to repository
+- [ ] **FAIL: Outdated Stripe SDK in edge functions (V13)**
+- [ ] Run `npm audit` and address findings
+- [ ] Set up Dependabot or Renovate for automated updates
+- [ ] Establish secret rotation schedule
+- [ ] Verify no debug endpoints in production
 
-**Fix:** Drop this function after initial setup, or add rate limiting and alerting.
+### 6.9 Admin Access & Privilege Management
 
----
-
-### V10: LOW — Error Message Information Disclosure
-
-**Files:** Multiple API routes (e.g., `sync-stripe-customer.ts:63`, `stripe-webhook.ts:195`)
-
-```typescript
-return res.status(500).json({ error: (err as Error).message });
-```
-
-**Why Vulnerable:** Internal error messages (Stripe errors, database errors, connection failures) are returned directly to the client. These can reveal internal infrastructure details, table names, or service configurations.
-
-**Fix:** Return generic error messages in production. Log details server-side only.
-
----
-
-## 7. Hardening Plan
-
-### Immediate (P0) — Fix Within 24 Hours
-
-1. **Restrict `role` column updates via RLS** — Add `WITH CHECK` that prevents role changes
-2. **Add authentication to `sync-stripe-customer`** — Add `verifyUser()` + user ID match
-3. **Remove user CRUD on subscriptions/payments** — Drop INSERT/UPDATE/DELETE policies
-4. **Restrict CORS to project-specific origins** — Remove wildcard `.vercel.app`
-
-### Short-Term (P1) — Fix Within 1 Week
-
-5. **Add CSP headers** to `vercel.json`
-6. **Validate file uploads** — size, MIME type, extension whitelist
-7. **Restrict Edge Function CORS** — Replace `*` with specific origins
-8. **Sanitize error messages** — Generic errors to client, details to logs
-
-### Medium-Term (P2) — Fix Within 1 Month
-
-9. **Add rate limiting** on all API endpoints (Vercel edge middleware or Upstash)
-10. **Drop `claim_admin_role()`** RPC after initial admin setup
-11. **Add audit logging** for all admin actions (currently only plan-config logs)
-12. **Review storage bucket policies** for the `avatars` bucket
-
-### Secure Architecture Patterns
-
-#### RLS Template for User-Owned Data
-```sql
--- Allow users to read own data
-CREATE POLICY "users_select_own" ON table_name FOR SELECT
-  USING (user_id = auth.uid());
-
--- Only server (service role) can write
--- NO INSERT/UPDATE/DELETE policies for client access
-```
-
-#### Secure Admin Check Pattern
-```sql
--- Prevent role modification via RLS
-CREATE POLICY "users_update_own_safe" ON profiles FOR UPDATE
-  USING (id = auth.uid())
-  WITH CHECK (
-    id = auth.uid()
-    AND role = (SELECT role FROM profiles WHERE id = auth.uid())
-  );
-```
-
-#### Secure API Middleware Pattern
-```typescript
-// Every API route should start with:
-const user = await verifyUser(req.headers.authorization);
-if (!user) return res.status(401).json({ error: 'Unauthorized' });
-
-// For admin routes, add:
-const { data: profile } = await supabaseAdmin
-  .from('profiles').select('role').eq('id', user.id).single();
-if (profile?.role !== 'admin') return res.status(403).json({ error: 'Forbidden' });
-```
-
-### Deployment Checklist
-
-- [ ] Ensure `SUPABASE_SERVICE_ROLE_KEY` is NEVER exposed in client bundles
-- [ ] Verify `.env` files are in `.gitignore`
-- [ ] Separate environment variables for preview vs production in Vercel
-- [ ] Enable Supabase email verification before production launch
-- [ ] Enable Supabase rate limiting for auth endpoints
-- [ ] Review and restrict Supabase storage bucket policies
-- [ ] Set up monitoring/alerting for admin role changes
-- [ ] Run `supabase db lint` to verify RLS coverage
+- [x] Admin role defined with CHECK constraint (`001_initial_schema.sql:22`)
+- [x] Server-side admin verification on all admin API routes
+- [x] Admin actions logged to `admin_logs` table
+- [x] Role modification prevented by RLS WITH CHECK (`005_security_hardening.sql`)
+- [ ] **FAIL: No MFA enforcement for admins (V8)**
+- [ ] Document admin access provisioning/revocation process
+- [ ] Implement periodic admin account reviews
+- [ ] Consider admin session timeout shorter than regular users
+- [ ] Consider separation of duties for critical operations
 
 ---
 
-## 8. Security Score
+## 7. Configuration Hardening Guide
+
+### 7.1 Vercel Dashboard
+
+1. **Environment Variable Scoping** (addresses V7)
+   - Set `SUPABASE_SERVICE_ROLE_KEY`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` to **Production only**
+   - Create separate Stripe test-mode keys for Preview and Development
+   - Set `SITE_URL` differently for preview deployments
+
+2. **Deployment Protection**
+   - Enable "Vercel Authentication" for preview deployments
+   - Consider enabling "Trusted IPs" if team uses fixed IPs
+
+3. **Security Headers Enhancement**
+   - Add `Permissions-Policy: interest-cohort=()` to opt out of Topics API
+   - Consider adding `preload` to HSTS once confirmed
+   - Evaluate replacing `'unsafe-inline'` in style-src with nonces
+
+4. **Function Configuration**
+   - Set `maxDuration` on serverless functions to prevent runaway costs
+   - Configure request body size limits via `vercel.json`
+
+### 7.2 Supabase Dashboard
+
+1. **Authentication Settings**
+   - Enable email confirmation for new signups
+   - Set minimum password length to 12+ characters
+   - Enable TOTP MFA and enforce for admin accounts
+   - Set JWT expiry to 3600 seconds (1 hour) or less
+   - Restrict OAuth redirect URIs to production and localhost
+
+2. **Database Security**
+   - Restrict direct database connections to trusted IPs
+   - Verify SSL is enforced for all connections
+   - Add explicit INSERT deny policy on profiles table
+   - Add unique constraint on `payments.stripe_invoice_id`
+   - Add unique constraint on `waitlist.email`
+
+3. **API & Realtime**
+   - Disable Supabase Realtime if not used
+   - Review and configure API rate limits in dashboard
+   - Verify REST API rate limits are appropriate
+
+4. **Storage**
+   - Verify avatar bucket public read is intentional
+   - Consider EXIF stripping for uploaded images
+   - Review for virus/malware scanning options
+
+5. **Backup & Recovery**
+   - Enable PITR on Pro plan
+   - Test backup restoration quarterly
+   - Document recovery procedures
+
+### 7.3 Stripe Dashboard
+
+1. **Webhook Configuration**
+   - Enable event filtering (only subscribe to handled events)
+   - Set up webhook failure alerts
+   - Monitor webhook delivery success rate
+
+2. **API Key Management**
+   - Rotate API keys quarterly
+   - Use restricted API keys with minimum required permissions
+   - Verify test-mode keys are not in production env vars
+
+3. **Payment Security**
+   - Enable Stripe Radar for fraud detection
+   - Configure 3D Secure for applicable regions
+   - Set up alerts for unusual payment patterns
+
+4. **Customer Portal**
+   - Restrict allowed portal actions to necessary operations
+   - Verify portal branding matches legitimate application
+
+---
+
+## 8. Ongoing Security Maintenance
+
+### 8.1 Automated Processes
+
+| Process | Tool | Frequency |
+|---------|------|-----------|
+| Dependency vulnerability scanning | Dependabot/Renovate | Weekly |
+| `npm audit` in CI pipeline | GitHub Actions | Every PR |
+| Secret scanning | GitHub secret scanning | Continuous |
+| Static analysis | ESLint security rules | Every PR |
+
+### 8.2 Manual Reviews
+
+| Frequency | Activity |
+|-----------|----------|
+| Weekly | Review Vercel function logs for errors and anomalies |
+| Weekly | Check Stripe webhook delivery success rate |
+| Monthly | Run `npm audit` and address findings |
+| Monthly | Review admin account list and access levels |
+| Quarterly | Rotate Stripe API keys and webhook secrets |
+| Quarterly | Review RLS policies if schema changes |
+| Quarterly | Review Supabase Auth settings |
+| Bi-annually | Full security audit (code + configuration) |
+| Annually | External penetration testing |
+
+### 8.3 Monitoring & Alerting Recommendations
+
+1. **Error tracking** - Integrate Sentry for frontend and serverless functions
+2. **Auth monitoring** - Alert on failed login rate spikes, password reset anomalies
+3. **API monitoring** - Track per-endpoint request rates, error rates, latency
+4. **Stripe monitoring** - Webhook failure rate, unusual payment amounts, churn spikes
+5. **Uptime monitoring** - Production app and critical API endpoint availability
+6. **Log retention** - Set retention policies balancing debugging needs with GDPR data minimization
+
+### 8.4 Incident Response Checklist
+
+1. **Contain** - Disable compromised accounts/keys immediately
+2. **Assess** - Determine scope: which data/users affected
+3. **Rotate** - Change all potentially compromised secrets (Supabase, Stripe, webhook secrets)
+4. **Notify** - Inform affected users per GDPR (72-hour window for authorities)
+5. **Remediate** - Fix the exploited vulnerability
+6. **Review** - Post-incident analysis and documentation
+7. **Improve** - Update security measures based on lessons learned
+
+---
+
+## 9. Remediation Timeline
+
+### Immediate (0-48 hours) - Critical
+
+| ID | Finding | Action | File |
+|----|---------|--------|------|
+| V1 | Unauth checkout edge function | Add JWT verification, price validation | `supabase/functions/create-checkout-session/index.ts` |
+| V2 | Unauth sync-customer edge function | Add JWT verification, use verified user ID | `supabase/functions/sync-stripe-customer/index.ts` |
+| V3 | Unauth portal edge function | Add JWT verification, lookup customer from profile | `supabase/functions/create-portal-session/index.ts` |
+
+### Short-term (1-2 weeks) - High
+
+| ID | Finding | Action | File |
+|----|---------|--------|------|
+| V4 | Email exposure | Mask emails in response | `api/admin-stats.ts` |
+| V5 | No rate limiting | Add Vercel Edge Middleware with Upstash | New middleware file |
+| V6 | Sensitive logs | Sanitize all `console.error()` calls | All `api/*.ts` files |
+| V9 | Non-idempotent webhook | Add unique constraint + use upsert | `api/stripe-webhook.ts`, new migration |
+
+### Medium-term (2-4 weeks) - Medium
+
+| ID | Finding | Action | File |
+|----|---------|--------|------|
+| V7 | CORS preview access | Scope env vars to production only | Vercel dashboard + `api/_lib/cors.ts` |
+| V8 | No admin MFA | Enable + enforce MFA for admins | Auth config + admin endpoints |
+| V10 | Waitlist spam | Add email unique constraint + rate limit | New migration |
+| V11 | Missing INSERT policy | Add explicit deny INSERT on profiles | New migration |
+
+### Long-term (1-3 months) - Low
+
+| ID | Finding | Action | File |
+|----|---------|--------|------|
+| V12 | Referral code predictability | Improve randomness | New migration |
+| V13 | Outdated Stripe SDK | Update edge function dependencies | Edge function files |
+| V14 | CORS credentials header | Document design decision | `api/_lib/cors.ts` |
+| V15 | Silent audit failures | Add error logging for audit failures | `api/plan-config.ts`, `api/news.ts` |
+
+### Ongoing
+
+- Implement monitoring and alerting infrastructure
+- Set up automated dependency scanning in CI
+- Document and rehearse incident response procedures
+- Schedule regular security review cadence
+- Conduct annual external penetration test
+
+---
+
+## Security Score
 
 | Category | Score | Max | Notes |
 |----------|-------|-----|-------|
-| Authentication | 8 | 10 | JWT verification solid; getSession() concern is minor |
-| Authorization (Backend) | 5 | 10 | sync-stripe-customer unprotected; role check pattern is good elsewhere |
-| Authorization (RLS) | 3 | 10 | Critical: role escalation possible; subscriptions/payments writable |
-| Input Validation | 7 | 10 | Good Zod usage; file upload needs work |
-| CORS/Headers | 4 | 10 | Wildcard CORS; missing CSP |
-| Infrastructure | 7 | 10 | Proper env separation; Stripe webhook verification |
-| Data Protection | 7 | 10 | RLS on all tables; error messages leak info |
-| Secure Defaults | 6 | 10 | Good security headers except CSP; service role properly isolated |
+| Authentication (Vercel) | 9 | 10 | All routes properly authenticated |
+| Authentication (Edge Functions) | 2 | 10 | 3 of 5 functions completely unauthenticated |
+| Authorization & RLS | 8 | 10 | Hardened; missing profile INSERT policy |
+| Input Validation | 8 | 10 | Good validation; edge functions lack price checks |
+| CORS & Headers | 7 | 10 | Strong headers; CORS allows previews |
+| Stripe Integration | 7 | 10 | Proper webhook verification; idempotency issue |
+| Infrastructure Config | 7 | 10 | Good defaults; env scoping needs verification |
+| Data Protection | 6 | 10 | Email exposure in admin stats; logging concerns |
+| Monitoring & Response | 3 | 10 | Basic audit logging; no alerts or monitoring |
+| Dependency Management | 7 | 10 | Modern versions; edge functions outdated |
 
-### **Overall Security Score: 38/100**
+### Overall Security Score: 64/100
 
-The score is heavily penalized by the critical privilege escalation vulnerability (V1) which effectively compromises the entire authorization model. Once V1 is fixed along with V2 and V3, the score would rise to approximately **72/100**.
+The score is primarily impacted by the 3 critical unauthenticated edge functions and the lack of monitoring infrastructure. Fixing the critical findings would raise the score to approximately **78/100**. Full implementation of rate limiting, monitoring, and MFA would bring it to **90+/100**.
+
+---
+
+*End of Security Audit Report*
