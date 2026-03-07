@@ -13,11 +13,13 @@ import {
   ChevronLeft,
   ChevronRight,
   ShieldCheck,
+  Newspaper,
 } from 'lucide-react';
 import { useAuthStore } from '@/stores/authStore';
 
 const navItems = [
   { to: '/dashboard', icon: Home, label: 'Home', end: true },
+  { to: '/dashboard/hub', icon: Newspaper, label: 'Hub', end: false },
   { to: '/dashboard/profile', icon: User, label: 'Profile', end: false },
   { to: '/dashboard/pets', icon: Dog, label: 'My Pets', end: false },
   { to: '/dashboard/membership', icon: CreditCard, label: 'Membership', end: false },

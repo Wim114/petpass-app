@@ -504,6 +504,14 @@ export const translations = {
       signupToRead: 'Sign up to read the full article',
       close: 'Close',
     },
+
+    // Hub
+    hub: {
+      title: 'Hub',
+      subtitle: 'Latest news and announcements from PetPass Vienna',
+      noContent: 'No updates yet. Check back soon!',
+      publishedOn: 'Published on',
+    },
   },
 
   de: {
@@ -1008,6 +1016,14 @@ export const translations = {
       learnMore: 'Mehr erfahren',
       signupToRead: 'Registriere dich, um den ganzen Artikel zu lesen',
       close: 'Schlie\u00dfen',
+    },
+
+    // Hub
+    hub: {
+      title: 'Hub',
+      subtitle: 'Neuigkeiten und Ank\u00fcndigungen von PetPass Wien',
+      noContent: 'Noch keine Neuigkeiten. Schau bald wieder vorbei!',
+      publishedOn: 'Ver\u00f6ffentlicht am',
     },
   },
 };
